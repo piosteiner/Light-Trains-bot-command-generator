@@ -245,12 +245,11 @@ function buildVisualHTML(d) {
     ? `<br><em>${escHtml(d.prog.replace(/^ \*/, '').replace(/\*$/, ''))}</em>`
     : '';
 
-  return `.sh ${escHtml(d.world)} "<br>`
-    + `${escHtml(d.map)} - <b>${escHtml(d.aeth)}</b><br>`
-    + `:book: Expansion: <b>${escHtml(d.expLabel)}</b><br>`
+  return `.sh ${escHtml(d.world)} "``${escHtml(d.map)} - **${escHtml(d.aeth)}**<br>`
+    + `:book: Expansion: **${escHtml(d.expLabel)}**<br>`
     + `:dart: Targets : ${escHtml(d.tgt)}/12<br>`
     + `:train2: Speed: ${escHtml(d.speedStr)}<br>`
-    + `:eyes: Scouts: <em>${escHtml(d.scouts)}</em>`
+    + `:eyes: Scouts: *${escHtml(d.scouts)}*`
     + `${progLine}<br>" ${d.expNum}`;
 }
 
