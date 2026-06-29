@@ -256,7 +256,7 @@ function buildRawCmd(exp) {
   const { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
   const progLine   = prog   ? `\n*${prog}*`           : '';
-  const rewardLine = reward ? `\n:coin: ${reward}`    : '';
+  const rewardLine = reward ? `\n ${reward}`    : '';
   return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
@@ -267,7 +267,7 @@ function buildVisualHTML(exp) {
   const progLine   = prog
     ? `\n<span class="pv-italic">${escHtml(prog)}</span>`
     : '';
-  const rewardLine = reward ? `\n:coin: ${escHtml(reward)}` : '';
+  const rewardLine = reward ? `\n ${escHtml(reward)}` : '';
   return `.sh ${escHtml(world)} "\n`
     + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>\n`
     + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
