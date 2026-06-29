@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hunt Train Command Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo-icon"><i class="ti ti-train"></i></div>
+  <div>
+    <h1>Hunt Train Command Builder</h1>
+    <p>FFXIV · Generate .sh relay commands for Discord</p>
+  </div>
+</header>
+
+<main>
+
+  <div class="card">
+    <div class="card-title">World &amp; speed</div>
+    <div class="field">
+      <label for="combo-world-input">World</label>
+      <div class="combo" id="combo-world"></div>
+    </div>
+    <div class="field">
+      <label>Speed</label>
+      <div class="pills" id="speed-pills">
+        <div class="pill" data-speed="slow">[slow]</div>
+        <div class="pill active" data-speed="relaxed">[relaxed]</div>
+        <div class="pill" data-speed="fast">[fast]</div>
+        <div class="pill" data-speed="custom">custom…</div>
+      </div>
+      <input type="text" id="speed-custom" class="speed-custom" placeholder="enter custom speed label" />
+    </div>
+    <div class="field">
+      <label>GIF / link <span class="label-hint">(optional — appended after speed)</span></label>
+      <div class="gif-picks" id="gif-picks">
+        <div class="gif-pick active" data-url="">None</div>
+        <div class="gif-pick" data-url="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdXhzZGh2NmpjanpwenQzdWZvZng2c255ZDlkeTRnNGg2cXB0ZWY5YyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fW6yzJe1ZM5bi/giphy.gif">Default train GIF</div>
+      </div>
+      <input type="text" id="gif-url" placeholder="or paste custom URL…" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Expansions <span class="label-hint">tick one or more</span></div>
+    <div class="pills" id="exp-pills">
+      <div class="pill" data-exp="ARR">A Realm Reborn</div>
+      <div class="pill" data-exp="HW">Heavensward</div>
+      <div class="pill" data-exp="SB">Stormblood</div>
+      <div class="pill" data-exp="ShB">Shadowbringers</div>
+      <div class="pill" data-exp="EW">Endwalker</div>
+      <div class="pill" data-exp="DT">Dawntrail</div>
+    </div>
+  </div>
+
+  <div id="exp-sections"></div>
+
+  <div class="card">
+    <div class="card-title">Command preview</div>
+    <div id="preview-area">
+      <p class="no-exps">Select at least one expansion above to generate a command.</p>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/combo.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
