@@ -242,7 +242,7 @@ function buildRawCmd(exp) {
   const { world, speedStr, map, aeth, tgt, scouts, prog, expNum } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
   const progLine = prog ? `\n*${prog}*` : '';
-  return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}" ${expNum}`;
+  return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
 /* ── Visual HTML (rendered in the preview box) ──────────────── */
@@ -258,7 +258,7 @@ function buildVisualHTML(exp) {
     + `:dart: Targets : ${escHtml(tgt)}/12\n`
     + `:train2: Speed: ${escHtml(speedStr)}\n`
     + `:eyes: Scouts: <span class="pv-italic">${escHtml(scouts)}</span>`
-    + `${progLine}\n" ${expNum}`;
+    + `${progLine}\n:person_gesturing_ok:\n" ${expNum}`;
 }
 
 /* ── Click-to-copy handler ──────────────────────────────────── */
