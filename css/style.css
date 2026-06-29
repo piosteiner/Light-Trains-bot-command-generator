@@ -6,24 +6,24 @@
 }
 
 :root {
-  --bg:           #0d0f14;
-  --surface:      #161920;
-  --surface2:     #1e2230;
-  --surface3:     #252a3a;
-  --border:       rgba(255,255,255,0.08);
-  --border-strong:rgba(255,255,255,0.14);
-  --text:         #e8eaf0;
-  --text-muted:   #7a8099;
-  --text-dim:     #4a5068;
-  --accent:       #7c6af7;
-  --accent-bg:    rgba(124,106,247,0.12);
-  --accent-border:rgba(124,106,247,0.35);
-  --success:      #3ecf8e;
-  --success-bg:   rgba(62,207,142,0.1);
-  --success-border:rgba(62,207,142,0.4);
-  --radius:       8px;
-  --font:         'Inter', sans-serif;
-  --mono:         'JetBrains Mono', monospace;
+  --bg:             #0d0f14;
+  --surface:        #161920;
+  --surface2:       #1e2230;
+  --surface3:       #252a3a;
+  --border:         rgba(255,255,255,0.08);
+  --border-strong:  rgba(255,255,255,0.14);
+  --text:           #e8eaf0;
+  --text-muted:     #7a8099;
+  --text-dim:       #4a5068;
+  --accent:         #7c6af7;
+  --accent-bg:      rgba(124,106,247,0.12);
+  --accent-border:  rgba(124,106,247,0.35);
+  --success:        #3ecf8e;
+  --success-bg:     rgba(62,207,142,0.08);
+  --success-border: rgba(62,207,142,0.4);
+  --radius:         8px;
+  --font:           'Inter', sans-serif;
+  --mono:           'JetBrains Mono', monospace;
 }
 
 html { font-size: 16px; }
@@ -77,7 +77,7 @@ main {
 }
 
 @media (max-width: 600px) {
-  main { padding: 1rem; }
+  main   { padding: 1rem; }
   header { padding: 1rem; }
 }
 
@@ -150,8 +150,7 @@ main {
   gap: 5px;
 }
 
-.field > label,
-.field > .field-label {
+.field > label {
   font-size: 12px;
   color: var(--text-muted);
 }
@@ -211,14 +210,8 @@ input::placeholder { color: var(--text-dim); }
 }
 
 /* ── Speed custom input ───────────────────────────────────── */
-.speed-custom {
-  display: none;
-  margin-top: 6px;
-}
-
-.speed-custom.show {
-  display: block;
-}
+.speed-custom        { display: none; margin-top: 6px; }
+.speed-custom.show   { display: block; }
 
 /* ── Pills ────────────────────────────────────────────────── */
 .pills {
@@ -313,10 +306,7 @@ input::placeholder { color: var(--text-dim); }
 }
 
 /* ── Combobox ─────────────────────────────────────────────── */
-.combo {
-  position: relative;
-  width: 100%;
-}
+.combo { position: relative; width: 100%; }
 
 .combo-input {
   width: 100%;
@@ -331,7 +321,7 @@ input::placeholder { color: var(--text-dim); }
   transition: border-color 0.15s;
 }
 
-.combo-input:focus { border-color: var(--accent); }
+.combo-input:focus       { border-color: var(--accent); }
 .combo-input::placeholder { color: var(--text-dim); }
 
 .combo-arrow {
@@ -381,15 +371,7 @@ input::placeholder { color: var(--text-dim); }
 }
 
 /* ── Preview ──────────────────────────────────────────────── */
-.preview-block {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.preview-block + .preview-block {
-  margin-top: 1.1rem;
-}
+.preview-block + .preview-block { margin-top: 1rem; }
 
 .preview-exp-label {
   font-size: 11px;
@@ -397,71 +379,57 @@ input::placeholder { color: var(--text-dim); }
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  margin-bottom: 5px;
 }
 
 .preview-visual {
   background: var(--surface2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   font-family: var(--mono);
   font-size: 12px;
   color: var(--text);
   line-height: 2;
+  white-space: pre;
   word-break: break-all;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s;
+  user-select: none;
 }
 
-.preview-visual b  { font-weight: 600; }
-.preview-visual em { font-style: italic; color: var(--text-muted); }
+.preview-visual:hover  { border-color: var(--accent-border); }
 
-.preview-raw {
-  font-family: var(--mono);
+.preview-visual.copied {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+}
+
+/* Inline formatting spans — mirror Discord markdown visually */
+.pv-bold   { font-weight: 700; }
+.pv-italic { font-style: italic; color: var(--text-muted); }
+
+/* Click-to-copy hint badge */
+.copy-hint {
+  position: absolute;
+  top: 7px;
+  right: 9px;
   font-size: 11px;
+  font-family: var(--font);
   color: var(--text-dim);
-  padding: 0.5rem 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  word-break: break-all;
-  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  transition: color 0.15s;
 }
+
+.preview-visual:hover  .copy-hint { color: var(--accent); }
+.preview-visual.copied .copy-hint { color: var(--success); }
 
 .no-exps {
   font-size: 13px;
   color: var(--text-dim);
   padding: 0.25rem 0;
-}
-
-/* ── Buttons ──────────────────────────────────────────────── */
-.btn-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--surface2);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.btn:hover {
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-
-.btn.ok {
-  background: var(--success-bg);
-  border-color: var(--success-border);
-  color: var(--success);
 }

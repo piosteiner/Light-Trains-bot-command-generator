@@ -22,7 +22,10 @@ function getSpeed() {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 /* ── World combobox ─────────────────────────────────────────── */
@@ -216,41 +219,59 @@ function updateProgPreviews() {
   });
 }
 
-/* ── Build command data ─────────────────────────────────────── */
-function buildCommandData() {
-  const world    = getComboVal('combo-world') || 'WORLD';
-  const speed    = getSpeed();
-  const gif      = val('gif-url');
+/* ── Build parts shared by raw + visual ─────────────────────── */
+function buildParts(exp) {
+  const world  = getComboVal('combo-world') || 'WORLD';
+  const speed  = getSpeed();
+  const gif    = val('gif-url');
+  // No space between ] and ( — matches Discord bot format exactly
   const speedStr = gif ? `[${speed}](${gif})` : `[${speed}]`;
-
-  return selectedExps.map(exp => {
-    const d      = expData[exp] || {};
-    const map    = getComboVal(`combo-map-${exp}`)  || ZONES[exp][0]?.map || 'MAP';
-    const aeth   = getComboVal(`combo-aeth-${exp}`) || d.aeth || 'AETHERYTE';
-    const tgt    = d.targets || 'XX';
-    const scouts = d.scouts  || 'NAMES';
-    const prog   = (d.progEnabled && selectedExps.length > 1)
-      ? ` *${buildProgText(exp)}*`
-      : '';
-
-    const rawCmd = `.sh ${world} "${map} - ${aeth} :book: Expansion: ${EXP_LABELS[exp]} :dart: Targets : ${tgt}/12 :train2: Speed: ${speedStr} :eyes: Scouts: ${scouts}${prog}" ${EXP_NUMS[exp]}`;
-
-    return { exp, world, map, aeth, expLabel: EXP_LABELS[exp], tgt, speedStr, scouts, prog, expNum: EXP_NUMS[exp], rawCmd };
-  });
+  const d      = expData[exp] || {};
+  const map    = getComboVal(`combo-map-${exp}`)  || ZONES[exp][0]?.map || 'MAP';
+  const aeth   = getComboVal(`combo-aeth-${exp}`) || d.aeth || 'AETHERYTE';
+  const tgt    = d.targets || 'XX';
+  const scouts = d.scouts  || 'NAMES';
+  const prog   = (d.progEnabled && selectedExps.length > 1)
+    ? buildProgText(exp)
+    : null;
+  return { world, speedStr, map, aeth, tgt, scouts, prog, expNum: EXP_NUMS[exp] };
 }
 
-/* ── Build visual (formatted) HTML for preview ──────────────── */
-function buildVisualHTML(d) {
-  const progLine = d.prog
-    ? `<br><em>${escHtml(d.prog.replace(/^ \*/, '').replace(/\*$/, ''))}</em>`
-    : '';
+/* ── Raw command (real newlines, Discord markdown) ──────────── */
+function buildRawCmd(exp) {
+  const { world, speedStr, map, aeth, tgt, scouts, prog, expNum } = buildParts(exp);
+  const expLabel = EXP_LABELS[exp];
+  const progLine = prog ? `\n*${prog}*` : '';
+  return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}" ${expNum}`;
+}
 
-  return `.sh ${escHtml(d.world)} "``${escHtml(d.map)} - **${escHtml(d.aeth)}**<br>`
-    + `:book: Expansion: **${escHtml(d.expLabel)}**<br>`
-    + `:dart: Targets : ${escHtml(d.tgt)}/12<br>`
-    + `:train2: Speed: ${escHtml(d.speedStr)}<br>`
-    + `:eyes: Scouts: *${escHtml(d.scouts)}*`
-    + `${progLine}<br>" ${d.expNum}`;
+/* ── Visual HTML (rendered in the preview box) ──────────────── */
+function buildVisualHTML(exp) {
+  const { world, speedStr, map, aeth, tgt, scouts, prog, expNum } = buildParts(exp);
+  const expLabel = EXP_LABELS[exp];
+  const progLine = prog
+    ? `\n<span class="pv-italic">${escHtml(prog)}</span>`
+    : '';
+  return `.sh ${escHtml(world)} "\n`
+    + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>\n`
+    + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
+    + `:dart: Targets : ${escHtml(tgt)}/12\n`
+    + `:train2: Speed: ${escHtml(speedStr)}\n`
+    + `:eyes: Scouts: <span class="pv-italic">${escHtml(scouts)}</span>`
+    + `${progLine}\n" ${expNum}`;
+}
+
+/* ── Click-to-copy handler ──────────────────────────────────── */
+function copyCmd(exp, el) {
+  const raw = buildRawCmd(exp);
+  navigator.clipboard.writeText(raw).then(() => {
+    el.classList.add('copied');
+    el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-check"></i> Copied!';
+    setTimeout(() => {
+      el.classList.remove('copied');
+      el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-copy"></i> Click to copy';
+    }, 1800);
+  });
 }
 
 /* ── Render preview area ────────────────────────────────────── */
@@ -264,58 +285,14 @@ function update() {
     return;
   }
 
-  const cmds = buildCommandData();
-
-  const blocksHTML = cmds.map(c => `
-    <div class="preview-block">
-      <div class="preview-exp-label">${EXP_LABELS[c.exp]}</div>
-      <div class="preview-visual">${buildVisualHTML(c)}</div>
-      <div class="preview-raw">${escHtml(c.rawCmd)}</div>
-      <div class="btn-row">
-        <button class="btn" id="copybtn-${c.exp}" onclick="copyOne('${c.exp}')">
-          <i class="ti ti-copy" aria-hidden="true"></i> Copy command
-        </button>
+  area.innerHTML = selectedExps.map((exp, i) => `
+    <div class="preview-block" ${i > 0 ? 'style="margin-top:1rem"' : ''}>
+      <div class="preview-exp-label">${EXP_LABELS[exp]}</div>
+      <div class="preview-visual" id="pv-${exp}" onclick="copyCmd('${exp}', this)">
+        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildVisualHTML(exp)}
       </div>
     </div>
   `).join('');
-
-  const copyAllBtn = cmds.length > 1 ? `
-    <div class="preview-block">
-      <button class="btn" id="copybtn-all" onclick="copyAll()">
-        <i class="ti ti-copy" aria-hidden="true"></i> Copy all commands
-      </button>
-    </div>
-  ` : '';
-
-  area.innerHTML = blocksHTML + copyAllBtn;
-}
-
-/* ── Copy helpers ───────────────────────────────────────────── */
-function copyOne(exp) {
-  const c = buildCommandData().find(x => x.exp === exp);
-  if (!c) return;
-  navigator.clipboard.writeText(c.rawCmd).then(() => {
-    const btn = document.getElementById(`copybtn-${exp}`);
-    btn.classList.add('ok');
-    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied!';
-    setTimeout(() => {
-      btn.classList.remove('ok');
-      btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copy command';
-    }, 1600);
-  });
-}
-
-function copyAll() {
-  const text = buildCommandData().map(c => c.rawCmd).join('\n');
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copybtn-all');
-    btn.classList.add('ok');
-    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied all!';
-    setTimeout(() => {
-      btn.classList.remove('ok');
-      btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copy all commands';
-    }, 1600);
-  });
 }
 
 /* ── Init ───────────────────────────────────────────────────── */
