@@ -221,7 +221,7 @@ function buildCommandData() {
   const world    = getComboVal('combo-world') || 'WORLD';
   const speed    = getSpeed();
   const gif      = val('gif-url');
-  const speedStr = gif ? `[${speed}] (${gif})` : `[${speed}]`;
+  const speedStr = gif ? `[${speed}](${gif})` : `[${speed}]`;
 
   return selectedExps.map(exp => {
     const d      = expData[exp] || {};
