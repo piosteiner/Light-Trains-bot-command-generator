@@ -219,6 +219,19 @@ function updateProgPreviews() {
   });
 }
 
+/* ── Reward calculation ─────────────────────────────────────── */
+function buildRewardLine(exp, targets) {
+  const count = parseInt(targets) || 0;
+  if (count === 0) return null;
+  const rewards = EXP_REWARDS[exp] || [];
+  return rewards
+    .map(r => {
+      const total = r.amount * count;
+      return r.emoji ? `${total} ${r.emoji}` : `${total} ${r.label}`;
+    })
+    .join(' | ');
+}
+
 /* ── Build parts shared by raw + visual ─────────────────────── */
 function buildParts(exp) {
   const world  = getComboVal('combo-world') || 'WORLD';
@@ -234,28 +247,31 @@ function buildParts(exp) {
   const prog   = (d.progEnabled && selectedExps.length > 1)
     ? buildProgText(exp)
     : null;
-  return { world, speedStr, map, aeth, tgt, scouts, prog, expNum: EXP_NUMS[exp] };
+  const reward = buildRewardLine(exp, d.targets);
+  return { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum: EXP_NUMS[exp] };
 }
 
 /* ── Raw command (real newlines, Discord markdown) ──────────── */
 function buildRawCmd(exp) {
-  const { world, speedStr, map, aeth, tgt, scouts, prog, expNum } = buildParts(exp);
+  const { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
-  const progLine = prog ? `\n*${prog}*` : '';
-  return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
+  const progLine   = prog   ? `\n*${prog}*`           : '';
+  const rewardLine = reward ? `\n:coin: ${reward}`    : '';
+  return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
 /* ── Visual HTML (rendered in the preview box) ──────────────── */
 function buildVisualHTML(exp) {
-  const { world, speedStr, map, aeth, tgt, scouts, prog, expNum } = buildParts(exp);
-  const expLabel = EXP_LABELS[exp];
-  const progLine = prog
+  const { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum } = buildParts(exp);
+  const expLabel   = EXP_LABELS[exp];
+  const progLine   = prog
     ? `\n<span class="pv-italic">${escHtml(prog)}</span>`
     : '';
+  const rewardLine = reward ? `\n:coin: ${escHtml(reward)}` : '';
   return `.sh ${escHtml(world)} "\n`
     + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>\n`
     + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
-    + `:dart: Targets : ${escHtml(tgt)}/12\n`
+    + `:dart: Targets : ${escHtml(tgt)}/12${rewardLine}\n`
     + `:train2: Speed: ${escHtml(speedStr)}\n`
     + `:eyes: Scouts: <span class="pv-italic">${escHtml(scouts)}</span>`
     + `${progLine}\n:person_gesturing_ok:\n" ${expNum}`;

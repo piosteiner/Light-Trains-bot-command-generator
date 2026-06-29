@@ -81,3 +81,39 @@ const ZONES = {
     { map: 'Living Memory',               aeths: ["Worlar's Echo"] },
   ],
 };
+
+/* Rewards per A-rank kill, in display order (smallest to largest quantity) */
+const EXP_REWARDS = {
+  ARR: [
+    { amount: 10, emoji: ':mathematics:',  label: null },
+    { amount: 30, emoji: ':poetics:',      label: null },
+    { amount: 20, emoji: null,             label: 'Centurio Seals' },
+    { amount: 40, emoji: null,             label: 'Allied Seals' },
+  ],
+  HW: [
+    { amount: 10, emoji: ':mathematics:',  label: null },
+    { amount: 30, emoji: ':poetics:',      label: null },
+    { amount: 40, emoji: null,             label: 'Centurio Seals' },
+  ],
+  SB: [
+    { amount: 10, emoji: ':mathematics:',  label: null },
+    { amount: 30, emoji: ':poetics:',      label: null },
+    { amount: 40, emoji: null,             label: 'Centurio Seals' },
+  ],
+  ShB: [
+    { amount: 10, emoji: ':mathematics:',  label: null },
+    { amount: 30, emoji: ':poetics:',      label: null },
+    { amount: 40, emoji: ':sackofnuts:',   label: null },
+  ],
+  EW: [
+    { amount: 10, emoji: ':mathematics:',  label: null },
+    { amount: 30, emoji: ':poetics:',      label: null },
+    { amount: 40, emoji: ':sackofnuts:',   label: null },
+  ],
+  DT: [
+    { amount: 10, emoji: ':mnemonics:',    label: null },
+    { amount: 20, emoji: ':mathematics:',  label: null },
+    { amount: 30, emoji: ':poetics:',      label: null },
+    { amount: 40, emoji: ':sackofnuts:',   label: null },
+  ],
+};
