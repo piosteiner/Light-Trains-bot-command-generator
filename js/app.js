@@ -256,7 +256,7 @@ function buildRawCmd(exp) {
   const { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
   const progLine   = prog   ? `\n*${prog}*`           : '';
-  const rewardLine = reward ? `\n ${reward}`    : '';
+  const rewardLine = reward ? `\n${reward}`    : '';
   return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
@@ -267,7 +267,7 @@ function buildVisualHTML(exp) {
   const progLine   = prog
     ? `\n<span class="pv-italic">${escHtml(prog)}</span>`
     : '';
-  const rewardLine = reward ? `\n ${escHtml(reward)}` : '';
+  const rewardLine = reward ? `\n${escHtml(reward)}` : '';
   return `.sh ${escHtml(world)} "\n`
     + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>\n`
     + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
@@ -277,10 +277,32 @@ function buildVisualHTML(exp) {
     + `${progLine}\n:person_gesturing_ok:\n" ${expNum}`;
 }
 
+/* ── CWL1 join-message (separate copyable text) ─────────────── */
+function buildCwl1Raw(exp) {
+  const { world, map, aeth } = buildParts(exp);
+  const expLabel = EXP_LABELS[exp];
+  return `/cwl1 Running a ${expLabel} A-Rank Hunt Train on ${world} in 10mins. Join at ${map} - ${aeth} if you want to hunt together <3`;
+}
+
+function buildCwl1Visual(exp) {
+  const { world, map, aeth } = buildParts(exp);
+  const expLabel = EXP_LABELS[exp];
+  return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabel)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in 10mins. Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
+}
+
 /* ── Click-to-copy handler ──────────────────────────────────── */
 function copyCmd(exp, el) {
   const raw = buildRawCmd(exp);
-  navigator.clipboard.writeText(raw).then(() => {
+  copyToClipboard(raw, el);
+}
+
+function copyCwl1(exp, el) {
+  const raw = buildCwl1Raw(exp);
+  copyToClipboard(raw, el);
+}
+
+function copyToClipboard(text, el) {
+  navigator.clipboard.writeText(text).then(() => {
     el.classList.add('copied');
     el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-check"></i> Copied!';
     setTimeout(() => {
@@ -306,6 +328,10 @@ function update() {
       <div class="preview-exp-label">${EXP_LABELS[exp]}</div>
       <div class="preview-visual" id="pv-${exp}" onclick="copyCmd('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildVisualHTML(exp)}
+      </div>
+      <div class="preview-exp-label" style="margin-top:.6rem">Join message</div>
+      <div class="preview-visual" id="pvc-${exp}" onclick="copyCwl1('${exp}', this)">
+        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildCwl1Visual(exp)}
       </div>
     </div>
   `).join('');
