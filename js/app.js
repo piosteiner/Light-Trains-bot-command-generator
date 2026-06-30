@@ -329,7 +329,7 @@ function update() {
       <div class="preview-visual" id="pv-${exp}" onclick="copyCmd('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildVisualHTML(exp)}
       </div>
-      <div class="preview-exp-label" style="margin-top:.6rem">Join message</div>
+      <div class="preview-exp-label" style="margin-top:.6rem">CWLS message</div>
       <div class="preview-visual" id="pvc-${exp}" onclick="copyCwl1('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildCwl1Visual(exp)}
       </div>
