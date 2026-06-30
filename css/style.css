@@ -13,9 +13,9 @@
   --border:         rgba(255,255,255,0.08);
   --border-strong:  rgba(255,255,255,0.14);
   --text:           #e8eaf0;
-  --text-muted:     #7a8099;
-  --text-dim:       #4a5068;
-  --accent:         #7c6af7;
+  --text-muted:     #9aa0b8;
+  --text-dim:       #7e84a0;
+  --accent:         #9485f9;
   --accent-bg:      rgba(124,106,247,0.12);
   --accent-border:  rgba(124,106,247,0.35);
   --success:        #3ecf8e;
@@ -24,6 +24,15 @@
   --radius:         8px;
   --font:           'Inter', sans-serif;
   --mono:           'JetBrains Mono', monospace;
+
+  /* Distinct accent stripe per expansion, used in the command preview
+     so multiple expansions are easy to tell apart at a glance. */
+  --exp-color-ARR: #e2725b;
+  --exp-color-HW:  #6ec6e8;
+  --exp-color-SB:  #e8c84a;
+  --exp-color-ShB: #8b7bd8;
+  --exp-color-EW:  #5cc2a6;
+  --exp-color-DT:  #e89a5c;
 }
 
 html { font-size: 16px; }
@@ -373,6 +382,23 @@ input::placeholder { color: var(--text-dim); }
 /* ── Preview ──────────────────────────────────────────────── */
 .preview-block + .preview-block { margin-top: 1rem; }
 
+.exp-preview-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--border-strong) 15%,
+    var(--border-strong) 85%,
+    transparent
+  );
+  margin: 1.1rem 0;
+}
+
+.exp-icon {
+  font-size: 13px;
+  margin-right: 1px;
+}
+
 .preview-exp-label {
   font-size: 11px;
   font-weight: 600;
@@ -427,6 +453,19 @@ input::placeholder { color: var(--text-dim); }
 
 .preview-visual:hover  .copy-hint { color: var(--accent); }
 .preview-visual.copied .copy-hint { color: var(--success); }
+
+/* Required-field validation */
+.field-invalid {
+  border-color: #e25c5c !important;
+  box-shadow: 0 0 0 1px rgba(226, 92, 92, 0.35);
+}
+
+.preview-visual.blocked {
+  border-color: #e25c5c;
+  background: rgba(226, 92, 92, 0.08);
+}
+
+.preview-visual.blocked .copy-hint { color: #e25c5c; }
 
 .no-exps {
   font-size: 13px;

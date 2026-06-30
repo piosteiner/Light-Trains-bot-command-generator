@@ -45,13 +45,32 @@ document.querySelectorAll('#speed-pills .pill').forEach(p => {
 document.getElementById('speed-custom').addEventListener('input', update);
 
 /* ── GIF quick-picks ────────────────────────────────────────── */
-document.querySelectorAll('.gif-pick').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.getElementById('gif-url').value = btn.dataset.url;
-    syncGifPicks();
-    update();
+renderGifPicks();
+
+function renderGifPicks() {
+  const container = document.getElementById('gif-picks');
+  GIF_LIBRARY.forEach(g => {
+    if (!g.url) return; // skip empty placeholder slots
+    const pill = document.createElement('div');
+    pill.className = 'gif-pick';
+    pill.dataset.url = g.url;
+    pill.textContent = g.label;
+    pill.addEventListener('click', () => {
+      document.getElementById('gif-url').value = g.url;
+      syncGifPicks();
+      update();
+    });
+    container.appendChild(pill);
   });
-});
+
+  // wire up the static "None" pill too
+  container.querySelector('.gif-pick[data-url=""]')
+    .addEventListener('click', () => {
+      document.getElementById('gif-url').value = '';
+      syncGifPicks();
+      update();
+    });
+}
 
 document.getElementById('gif-url').addEventListener('input', () => {
   syncGifPicks();
@@ -121,7 +140,7 @@ function renderExpSections() {
       <div class="targets-row">
         <input type="number" id="tgt-${exp}" value="${d.targets}"
                min="0" max="12" placeholder="0"
-               oninput="setField('${exp}', 'targets', this.value)" />
+               oninput="setField('${exp}', 'targets', this.value); this.value = expData['${exp}'].targets;" />
         <span class="targets-sep">/ 12</span>
       </div>
 
@@ -193,9 +212,31 @@ function rebuildAethCombo(exp) {
 
 /* ── Field helpers ──────────────────────────────────────────── */
 function setField(exp, key, value) {
+  if (key === 'targets') {
+    value = clampTargets(value);
+  }
   expData[exp][key] = value;
   updateProgPreviews();
+  clearInvalidIfFilled(exp, key, value);
   update();
+}
+
+/* Remove the red outline the moment a previously-empty field gets a value. */
+function clearInvalidIfFilled(exp, key, value) {
+  if (!value) return;
+  const idMap = { targets: `tgt-${exp}`, scouts: `scouts-${exp}` };
+  const id = idMap[key];
+  if (id) document.getElementById(id)?.classList.remove('field-invalid');
+}
+
+/* Clamp target count to the valid 0–12 range; non-numeric becomes ''. */
+function clampTargets(value) {
+  if (value === '') return '';
+  let n = parseInt(value, 10);
+  if (isNaN(n)) return '';
+  if (n < 0) n = 0;
+  if (n > 12) n = 12;
+  return String(n);
 }
 
 function toggleProg(exp, checked) {
@@ -290,15 +331,67 @@ function buildCwl1Visual(exp) {
   return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabel)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in 10mins. Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
 }
 
+/* ── Required-field validation ───────────────────────────────── */
+/* Checks World + per-expansion Map / Aetheryte / Targets / Scouts.
+   Adds .field-invalid to any empty required input and returns
+   true only if everything for the given exp (plus World) is filled. */
+function validateFields(exp) {
+  let valid = true;
+
+  const worldInput = document.querySelector('#combo-world .combo-input');
+  const worldOk = !!getComboVal('combo-world');
+  worldInput?.classList.toggle('field-invalid', !worldOk);
+  if (!worldOk) valid = false;
+
+  const mapInput = document.querySelector(`#combo-map-${exp} .combo-input`);
+  const mapOk = !!getComboVal(`combo-map-${exp}`);
+  mapInput?.classList.toggle('field-invalid', !mapOk);
+  if (!mapOk) valid = false;
+
+  const aethInput = document.querySelector(`#combo-aeth-${exp} .combo-input`);
+  const aethOk = !!getComboVal(`combo-aeth-${exp}`);
+  aethInput?.classList.toggle('field-invalid', !aethOk);
+  if (!aethOk) valid = false;
+
+  const tgtInput = document.getElementById(`tgt-${exp}`);
+  const tgtOk = !!(expData[exp]?.targets);
+  tgtInput?.classList.toggle('field-invalid', !tgtOk);
+  if (!tgtOk) valid = false;
+
+  const scoutsInput = document.getElementById(`scouts-${exp}`);
+  const scoutsOk = !!val(`scouts-${exp}`);
+  scoutsInput?.classList.toggle('field-invalid', !scoutsOk);
+  if (!scoutsOk) valid = false;
+
+  return valid;
+}
+
 /* ── Click-to-copy handler ──────────────────────────────────── */
 function copyCmd(exp, el) {
+  if (!validateFields(exp)) {
+    flashInvalid(el);
+    return;
+  }
   const raw = buildRawCmd(exp);
   copyToClipboard(raw, el);
 }
 
 function copyCwl1(exp, el) {
+  if (!validateFields(exp)) {
+    flashInvalid(el);
+    return;
+  }
   const raw = buildCwl1Raw(exp);
   copyToClipboard(raw, el);
+}
+
+function flashInvalid(el) {
+  el.classList.add('blocked');
+  el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-alert-triangle"></i> Fill required fields';
+  setTimeout(() => {
+    el.classList.remove('blocked');
+    el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-copy"></i> Click to copy';
+  }, 1800);
 }
 
 function copyToClipboard(text, el) {
@@ -324,12 +417,17 @@ function update() {
   }
 
   area.innerHTML = selectedExps.map((exp, i) => `
-    <div class="preview-block" ${i > 0 ? 'style="margin-top:1rem"' : ''}>
-      <div class="preview-exp-label">${EXP_LABELS[exp]}</div>
+    ${i > 0 ? '<div class="exp-preview-divider"></div>' : ''}
+    <div class="preview-block" style="border-left:3px solid var(--exp-color-${exp}); padding-left:.75rem">
+      <div class="preview-exp-label">
+        <span class="exp-icon">${EXP_ICONS[exp]}</span> ${EXP_LABELS[exp]}
+      </div>
       <div class="preview-visual" id="pv-${exp}" onclick="copyCmd('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildVisualHTML(exp)}
       </div>
-      <div class="preview-exp-label" style="margin-top:.6rem">CWLS message</div>
+      <div class="preview-exp-label" style="margin-top:.6rem">
+        <span class="exp-icon">${EXP_ICONS[exp]}</span> Join message
+      </div>
       <div class="preview-visual" id="pvc-${exp}" onclick="copyCwl1('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildCwl1Visual(exp)}
       </div>

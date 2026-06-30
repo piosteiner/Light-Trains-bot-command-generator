@@ -20,6 +20,17 @@ const EXP_NUMS = {
   ARR: 2, HW: 3, SB: 4, ShB: 5, EW: 6, DT: 7,
 };
 
+/* Quick visual marker per expansion, shown next to the label
+   in the command preview so multiple expansions are easy to tell apart. */
+const EXP_ICONS = {
+  ARR: '🔥',
+  HW:  '❄️',
+  SB:  '⚡',
+  ShB: '🌑',
+  EW:  '🪐',
+  DT:  '🌴',
+};
+
 const ZONES = {
   ARR: [
     { map: 'Middle La Noscea',            aeths: ['Summerford Farms'] },
@@ -117,3 +128,12 @@ const EXP_REWARDS = {
     { amount: 40, emoji: ':sackofnuts:',   label: null },
   ],
 };
+
+/* GIF library — quick-pick options shown under World & Speed.
+   Add or replace entries here; "label" is what shows on the pill. */
+const GIF_LIBRARY = [
+  { label: 'Train GIF 1', url: 'https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdXhzZGh2NmpjanpwenQzdWZvZng2c255ZDlkeTRnNGg2cXB0ZWY5YyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fW6yzJe1ZM5bi/giphy.gif' },
+  { label: 'Train GIF 2', url: '' },
+  { label: 'Train GIF 3', url: '' },
+  { label: 'Train GIF 4', url: '' },
+];
