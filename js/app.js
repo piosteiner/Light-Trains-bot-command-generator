@@ -45,12 +45,78 @@ document.querySelectorAll('#speed-pills .pill').forEach(p => {
 document.getElementById('speed-custom').addEventListener('input', update);
 
 /* ── GIF quick-picks ────────────────────────────────────────── */
-renderGifPicks();
+const GIF_STORAGE_KEY = 'hunt-train-gif-library';
+
+function loadSavedGifs() {
+  try {
+    return JSON.parse(localStorage.getItem(GIF_STORAGE_KEY)) || [];
+  } catch { return []; }
+}
+
+function saveGif(url) {
+  if (!url) return;
+  const saved = loadSavedGifs();
+  // already known from static library or already saved — skip
+  const allKnown = [
+    ...GIF_LIBRARY.map(g => g.url).filter(Boolean),
+    ...saved,
+  ];
+  if (allKnown.includes(url)) return;
+  saved.push(url);
+  localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(saved));
+  addGifPill(url, true);
+}
+
+function removeGif(url) {
+  const saved = loadSavedGifs().filter(u => u !== url);
+  localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(saved));
+}
+
+function addGifPill(url, isSaved = false) {
+  const container = document.getElementById('gif-picks');
+  // prevent duplicates
+  if (container.querySelector(`[data-url="${CSS.escape(url)}"]`)) return;
+
+  const pill = document.createElement('div');
+  pill.className = 'gif-pick gif-pick--saved';
+  pill.dataset.url = url;
+
+  const label = document.createElement('span');
+  label.className = 'gif-pick-label';
+  label.textContent = url.split('/').pop().split('?')[0].slice(0, 22) || 'GIF';
+
+  const del = document.createElement('button');
+  del.className = 'gif-pick-del';
+  del.title = 'Remove from library';
+  del.innerHTML = '<i class="ti ti-x"></i>';
+  del.addEventListener('click', (e) => {
+    e.stopPropagation();
+    removeGif(url);
+    pill.remove();
+    // if this was active, reset to "None"
+    if (val('gif-url') === url) {
+      document.getElementById('gif-url').value = '';
+      syncGifPicks();
+      update();
+    }
+  });
+
+  pill.appendChild(label);
+  if (isSaved) pill.appendChild(del);
+  pill.addEventListener('click', () => {
+    document.getElementById('gif-url').value = url;
+    syncGifPicks();
+    update();
+  });
+  container.appendChild(pill);
+}
 
 function renderGifPicks() {
   const container = document.getElementById('gif-picks');
+
+  // static library pills from data.js
   GIF_LIBRARY.forEach(g => {
-    if (!g.url) return; // skip empty placeholder slots
+    if (!g.url) return;
     const pill = document.createElement('div');
     pill.className = 'gif-pick';
     pill.dataset.url = g.url;
@@ -63,18 +129,31 @@ function renderGifPicks() {
     container.appendChild(pill);
   });
 
-  // wire up the static "None" pill too
+  // wire up the static "None" pill
   container.querySelector('.gif-pick[data-url=""]')
     .addEventListener('click', () => {
       document.getElementById('gif-url').value = '';
       syncGifPicks();
       update();
     });
+
+  // saved GIFs from localStorage
+  loadSavedGifs().forEach(url => addGifPill(url, true));
 }
+
+renderGifPicks();
 
 document.getElementById('gif-url').addEventListener('input', () => {
   syncGifPicks();
   update();
+});
+
+// Save to library when user presses Enter or blurs the GIF field
+document.getElementById('gif-url').addEventListener('blur', () => {
+  saveGif(val('gif-url'));
+});
+document.getElementById('gif-url').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') saveGif(val('gif-url'));
 });
 
 function syncGifPicks() {

@@ -280,6 +280,37 @@ input::placeholder { color: var(--text-dim); }
   color: var(--accent);
 }
 
+/* Saved GIF pills (auto-built from localStorage) */
+.gif-pick--saved {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+}
+
+.gif-pick-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.gif-pick-del {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+
+.gif-pick-del:hover { color: #e25c5c; }
+
 /* ── Progression toggle ───────────────────────────────────── */
 .prog-toggle {
   display: flex;
