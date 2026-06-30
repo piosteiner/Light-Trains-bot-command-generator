@@ -331,6 +331,17 @@ function buildCwl1Visual(exp) {
   return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabel)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in 10mins. Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
 }
 
+/* ── Scouts macro (separate copyable text, per expansion) ────── */
+function buildScoutsRaw(exp) {
+  const { scouts } = buildParts(exp);
+  return `/sh This train was scouted by ${scouts}\n/p This train was scouted by ${scouts}`;
+}
+
+function buildScoutsVisual(exp) {
+  const { scouts } = buildParts(exp);
+  return `/sh This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>\n/p This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>`;
+}
+
 /* ── Required-field validation ───────────────────────────────── */
 /* Checks World + per-expansion Map / Aetheryte / Targets / Scouts.
    Adds .field-invalid to any empty required input and returns
@@ -385,6 +396,17 @@ function copyCwl1(exp, el) {
   copyToClipboard(raw, el);
 }
 
+function copyScouts(exp, el) {
+  const scoutsOk = !!val(`scouts-${exp}`);
+  if (!scoutsOk) {
+    document.getElementById(`scouts-${exp}`)?.classList.add('field-invalid');
+    flashInvalid(el);
+    return;
+  }
+  const raw = buildScoutsRaw(exp);
+  copyToClipboard(raw, el);
+}
+
 function flashInvalid(el) {
   el.classList.add('blocked');
   el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-alert-triangle"></i> Fill required fields';
@@ -426,10 +448,16 @@ function update() {
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildVisualHTML(exp)}
       </div>
       <div class="preview-exp-label" style="margin-top:.6rem">
-        <span class="exp-icon">${EXP_ICONS[exp]}</span> Join message
+        <span class="exp-icon">${EXP_ICONS[exp]}</span> CWLS message
       </div>
       <div class="preview-visual" id="pvc-${exp}" onclick="copyCwl1('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildCwl1Visual(exp)}
+      </div>
+      <div class="preview-exp-label" style="margin-top:.6rem">
+        <span class="exp-icon">${EXP_ICONS[exp]}</span> Scouts macro
+      </div>
+      <div class="preview-visual" id="pvs-${exp}" onclick="copyScouts('${exp}', this)">
+        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildScoutsVisual(exp)}
       </div>
     </div>
   `).join('');
