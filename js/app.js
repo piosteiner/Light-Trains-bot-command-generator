@@ -335,7 +335,7 @@ document.querySelectorAll('#exp-pills .pill').forEach(p => {
     p.classList.toggle('active', selectedExps.includes(exp));
 
     if (!expData[exp]) {
-      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false };
+      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false };
     }
 
     renderExpSections();
@@ -382,6 +382,12 @@ function renderExpSections() {
                oninput="setField('${exp}', 'targets', this.value); this.value = expData['${exp}'].targets;" />
         <span class="targets-sep">/ 12</span>
       </div>
+      <label class="prog-toggle" style="margin-top:2px">
+        <input type="checkbox" id="rewards-${exp}"
+               ${d.showRewards ? 'checked' : ''}
+               onchange="setField('${exp}', 'showRewards', this.checked)" />
+        Include currency rewards in message
+      </label>
 
       <div class="sub-label">Scouts</div>
       <input type="text" id="scouts-${exp}" value="${d.scouts}"
@@ -527,7 +533,7 @@ function buildParts(exp) {
   const prog   = (d.progEnabled && selectedExps.length > 1)
     ? buildProgText(exp)
     : null;
-  const reward = buildRewardLine(exp, d.targets);
+  const reward = (d.showRewards) ? buildRewardLine(exp, d.targets) : null;
   return { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum: EXP_NUMS[exp] };
 }
 
