@@ -61,40 +61,35 @@ function persistGifs(gifs) {
   localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(gifs));
 }
 
-function saveGif(url) {
+/* Save a new GIF or rename an existing one using the inline name field. */
+function saveOrRenameGif(url) {
   if (!url) return;
-  const saved = loadSavedGifs();
-  const staticUrls = GIF_LIBRARY.map(g => g.url).filter(Boolean);
-  if (staticUrls.includes(url) || saved.some(g => g.url === url)) return;
-  // read name from inline field, fall back to a generic label
   const nameInput = document.getElementById('gif-name');
   const label = (nameInput?.value || '').trim() || 'My GIF';
-  const entry = { url, label };
-  saved.push(entry);
-  persistGifs(saved);
-  addGifPill(entry);
-  // reset name field
-  if (nameInput) nameInput.value = '';
-  document.getElementById('gif-name-row').style.display = 'none';
+  const saved = loadSavedGifs();
+  const staticUrls = GIF_LIBRARY.map(g => g.url).filter(Boolean);
+  if (staticUrls.includes(url)) return; // static GIFs can't be renamed
+
+  const existing = saved.find(g => g.url === url);
+  if (existing) {
+    existing.label = label;
+    persistGifs(saved);
+    // update pill in DOM
+    const pill = document.querySelector(`#gif-picks [data-url="${CSS.escape(url)}"]`);
+    if (pill) {
+      const labelEl = pill.querySelector('.gif-pick-label');
+      if (labelEl) { labelEl.textContent = label; pill.title = label; }
+    }
+  } else {
+    const entry = { url, label };
+    saved.push(entry);
+    persistGifs(saved);
+    addGifPill(entry);
+  }
 }
 
 function removeGif(url) {
   persistGifs(loadSavedGifs().filter(g => g.url !== url));
-}
-
-function renameGif(url, pill, labelEl) {
-  const saved = loadSavedGifs();
-  const entry = saved.find(g => g.url === url);
-  const current = entry?.label || labelEl.textContent;
-  const name = prompt('Rename this GIF:', current);
-  if (name === null) return;
-  const label = name.trim() || current;
-  if (entry) {
-    entry.label = label;
-    persistGifs(saved);
-  }
-  labelEl.textContent = label;
-  pill.title = label;
 }
 
 function addGifPill(entry) {
@@ -112,11 +107,18 @@ function addGifPill(entry) {
 
   const renameBtn = document.createElement('button');
   renameBtn.className = 'gif-pick-action';
-  renameBtn.title = 'Rename';
+  renameBtn.title = 'Rename — click to select, then edit name above';
   renameBtn.innerHTML = '<i class="ti ti-pencil"></i>';
   renameBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    renameGif(entry.url, pill, labelEl);
+    // selecting the pill loads it into the URL field → name row appears
+    document.getElementById('gif-url').value = entry.url;
+    syncGifPicks();
+    updateGifPreview();
+    updateGifNameRow();
+    update();
+    // focus the name input for immediate editing
+    setTimeout(() => document.getElementById('gif-name')?.focus(), 50);
   });
 
   const delBtn = document.createElement('button');
@@ -143,6 +145,7 @@ function addGifPill(entry) {
     document.getElementById('gif-url').value = entry.url;
     syncGifPicks();
     updateGifPreview();
+    updateGifNameRow();
     update();
   });
 
@@ -163,6 +166,7 @@ function renderGifPicks() {
       document.getElementById('gif-url').value = g.url;
       syncGifPicks();
       updateGifPreview();
+      updateGifNameRow();
       update();
     });
     container.appendChild(pill);
@@ -174,6 +178,7 @@ function renderGifPicks() {
       document.getElementById('gif-url').value = '';
       syncGifPicks();
       updateGifPreview();
+      updateGifNameRow();
       update();
     });
 
@@ -183,15 +188,27 @@ function renderGifPicks() {
 
 renderGifPicks();
 
-/* Show the name field only when the URL is new (not already in the library) */
+/* Show name field whenever a non-static GIF URL is active.
+   Pre-fill with existing saved name so rename works too. */
 function updateGifNameRow() {
   const url = val('gif-url');
   const nameRow = document.getElementById('gif-name-row');
-  if (!url) { nameRow.style.display = 'none'; return; }
-  const saved = loadSavedGifs();
+  const nameInput = document.getElementById('gif-name');
   const staticUrls = GIF_LIBRARY.map(g => g.url).filter(Boolean);
-  const isKnown = staticUrls.includes(url) || saved.some(g => g.url === url);
-  nameRow.style.display = isKnown ? 'none' : 'block';
+
+  if (!url || staticUrls.includes(url)) {
+    nameRow.style.display = 'none';
+    if (nameInput) nameInput.value = '';
+    return;
+  }
+
+  nameRow.style.display = 'block';
+  // pre-fill with existing saved name if known, but don't overwrite if user is typing
+  const saved = loadSavedGifs();
+  const existing = saved.find(g => g.url === url);
+  if (existing && document.activeElement !== nameInput) {
+    nameInput.value = existing.label;
+  }
 }
 
 /* ── GIF preview ────────────────────────────────────────────── */
@@ -222,16 +239,15 @@ document.getElementById('gif-url').addEventListener('input', () => {
   update();
 });
 
-// Save to library when user presses Enter or blurs the GIF field
-document.getElementById('gif-url').addEventListener('blur', () => {
-  saveGif(val('gif-url'));
-});
+// Save/rename via Enter in the name field or URL field
 document.getElementById('gif-url').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') saveGif(val('gif-url'));
+  if (e.key === 'Enter') saveOrRenameGif(val('gif-url'));
 });
-// Also save when pressing Enter in the name field
 document.getElementById('gif-name').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') saveGif(val('gif-url'));
+  if (e.key === 'Enter') saveOrRenameGif(val('gif-url'));
+});
+document.getElementById('gif-name').addEventListener('blur', () => {
+  saveOrRenameGif(val('gif-url'));
 });
 
 function syncGifPicks() {
