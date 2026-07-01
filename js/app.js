@@ -391,7 +391,7 @@ function renderExpSections() {
 
       <div class="sub-label">Scouts</div>
       <input type="text" id="scouts-${exp}" value="${d.scouts}"
-             placeholder="e.g. Pio Eiro, Minfilia Warde"
+             placeholder="e.g. Presea Brunel, Rosemarie Herz, Ceri Elfari"
              oninput="setField('${exp}', 'scouts', this.value)" />
 
       ${multi ? `
