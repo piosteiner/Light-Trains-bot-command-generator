@@ -58,6 +58,7 @@ function loadSavedGifs() {
 }
 
 function persistGifs(gifs) {
+  gifs.sort((a, b) => a.label.localeCompare(b.label));
   localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(gifs));
 }
 
@@ -74,22 +75,26 @@ function saveOrRenameGif(url) {
   if (existing) {
     existing.label = label;
     persistGifs(saved);
-    // update pill in DOM
-    const pill = document.querySelector(`#gif-picks [data-url="${CSS.escape(url)}"]`);
-    if (pill) {
-      const labelEl = pill.querySelector('.gif-pick-label');
-      if (labelEl) { labelEl.textContent = label; pill.title = label; }
-    }
+    rebuildSavedPills();
   } else {
     const entry = { url, label };
     saved.push(entry);
     persistGifs(saved);
-    addGifPill(entry);
+    rebuildSavedPills();
   }
 }
 
 function removeGif(url) {
   persistGifs(loadSavedGifs().filter(g => g.url !== url));
+  rebuildSavedPills();
+}
+
+/* Remove and re-render all saved pills in sorted order. */
+function rebuildSavedPills() {
+  const container = document.getElementById('gif-picks');
+  container.querySelectorAll('.gif-pick--saved').forEach(p => p.remove());
+  loadSavedGifs().forEach(entry => addGifPill(entry));
+  syncGifPicks();
 }
 
 function addGifPill(entry) {
@@ -128,11 +133,11 @@ function addGifPill(entry) {
   delBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     removeGif(entry.url);
-    pill.remove();
     if (val('gif-url') === entry.url) {
       document.getElementById('gif-url').value = '';
       syncGifPicks();
       updateGifPreview();
+      updateGifNameRow();
       update();
     }
   });
