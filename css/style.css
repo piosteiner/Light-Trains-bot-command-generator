@@ -284,32 +284,52 @@ input::placeholder { color: var(--text-dim); }
 .gif-pick--saved {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding-right: 6px;
+  gap: 3px;
+  padding-right: 5px;
 }
 
 .gif-pick-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 120px;
+  max-width: 110px;
 }
 
-.gif-pick-del {
+.gif-pick-action {
   background: none;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  padding: 0;
+  padding: 1px 2px;
   font-size: 11px;
   line-height: 1;
   display: flex;
   align-items: center;
   flex-shrink: 0;
   transition: color 0.12s;
+  border-radius: 3px;
 }
 
-.gif-pick-del:hover { color: #e25c5c; }
+.gif-pick-action:hover { color: var(--text); }
+.gif-pick-del:hover    { color: #e25c5c; }
+
+/* GIF live preview */
+#gif-preview {
+  margin-top: 6px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--surface2);
+  max-width: 240px;
+}
+
+#gif-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 140px;
+  object-fit: cover;
+}
 
 /* ── Progression toggle ───────────────────────────────────── */
 .prog-toggle {

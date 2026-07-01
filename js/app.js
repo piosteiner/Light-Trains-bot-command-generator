@@ -45,69 +45,105 @@ document.querySelectorAll('#speed-pills .pill').forEach(p => {
 document.getElementById('speed-custom').addEventListener('input', update);
 
 /* ── GIF quick-picks ────────────────────────────────────────── */
-const GIF_STORAGE_KEY = 'hunt-train-gif-library';
+const GIF_STORAGE_KEY = 'hunt-train-gif-library-v2';
 
+/* Storage format: [{ url, label }, ...] */
 function loadSavedGifs() {
   try {
-    return JSON.parse(localStorage.getItem(GIF_STORAGE_KEY)) || [];
+    const raw = JSON.parse(localStorage.getItem(GIF_STORAGE_KEY));
+    if (!Array.isArray(raw)) return [];
+    // migrate old plain-string format
+    return raw.map(e => typeof e === 'string' ? { url: e, label: 'GIF' } : e);
   } catch { return []; }
+}
+
+function persistGifs(gifs) {
+  localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(gifs));
 }
 
 function saveGif(url) {
   if (!url) return;
   const saved = loadSavedGifs();
-  // already known from static library or already saved — skip
-  const allKnown = [
-    ...GIF_LIBRARY.map(g => g.url).filter(Boolean),
-    ...saved,
-  ];
-  if (allKnown.includes(url)) return;
-  saved.push(url);
-  localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(saved));
-  addGifPill(url, true);
+  const staticUrls = GIF_LIBRARY.map(g => g.url).filter(Boolean);
+  if (staticUrls.includes(url) || saved.some(g => g.url === url)) return;
+  // prompt for a name immediately when saving
+  const name = prompt('Give this GIF a name:', 'My GIF');
+  if (name === null) return; // user cancelled
+  const label = name.trim() || 'My GIF';
+  const entry = { url, label };
+  saved.push(entry);
+  persistGifs(saved);
+  addGifPill(entry);
 }
 
 function removeGif(url) {
-  const saved = loadSavedGifs().filter(u => u !== url);
-  localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(saved));
+  persistGifs(loadSavedGifs().filter(g => g.url !== url));
 }
 
-function addGifPill(url, isSaved = false) {
+function renameGif(url, pill, labelEl) {
+  const saved = loadSavedGifs();
+  const entry = saved.find(g => g.url === url);
+  const current = entry?.label || labelEl.textContent;
+  const name = prompt('Rename this GIF:', current);
+  if (name === null) return;
+  const label = name.trim() || current;
+  if (entry) {
+    entry.label = label;
+    persistGifs(saved);
+  }
+  labelEl.textContent = label;
+  pill.title = label;
+}
+
+function addGifPill(entry) {
   const container = document.getElementById('gif-picks');
-  // prevent duplicates
-  if (container.querySelector(`[data-url="${CSS.escape(url)}"]`)) return;
+  if (container.querySelector(`[data-url="${CSS.escape(entry.url)}"]`)) return;
 
   const pill = document.createElement('div');
   pill.className = 'gif-pick gif-pick--saved';
-  pill.dataset.url = url;
+  pill.dataset.url = entry.url;
+  pill.title = entry.label;
 
-  const label = document.createElement('span');
-  label.className = 'gif-pick-label';
-  label.textContent = url.split('/').pop().split('?')[0].slice(0, 22) || 'GIF';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'gif-pick-label';
+  labelEl.textContent = entry.label;
 
-  const del = document.createElement('button');
-  del.className = 'gif-pick-del';
-  del.title = 'Remove from library';
-  del.innerHTML = '<i class="ti ti-x"></i>';
-  del.addEventListener('click', (e) => {
+  const renameBtn = document.createElement('button');
+  renameBtn.className = 'gif-pick-action';
+  renameBtn.title = 'Rename';
+  renameBtn.innerHTML = '<i class="ti ti-pencil"></i>';
+  renameBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    removeGif(url);
+    renameGif(entry.url, pill, labelEl);
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'gif-pick-action gif-pick-del';
+  delBtn.title = 'Remove from library';
+  delBtn.innerHTML = '<i class="ti ti-x"></i>';
+  delBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    removeGif(entry.url);
     pill.remove();
-    // if this was active, reset to "None"
-    if (val('gif-url') === url) {
+    if (val('gif-url') === entry.url) {
       document.getElementById('gif-url').value = '';
       syncGifPicks();
+      updateGifPreview();
       update();
     }
   });
 
-  pill.appendChild(label);
-  if (isSaved) pill.appendChild(del);
+  pill.appendChild(labelEl);
+  pill.appendChild(renameBtn);
+  pill.appendChild(delBtn);
+
   pill.addEventListener('click', () => {
-    document.getElementById('gif-url').value = url;
+    document.getElementById('gif-url').value = entry.url;
     syncGifPicks();
+    updateGifPreview();
     update();
   });
+
   container.appendChild(pill);
 }
 
@@ -124,6 +160,7 @@ function renderGifPicks() {
     pill.addEventListener('click', () => {
       document.getElementById('gif-url').value = g.url;
       syncGifPicks();
+      updateGifPreview();
       update();
     });
     container.appendChild(pill);
@@ -134,17 +171,32 @@ function renderGifPicks() {
     .addEventListener('click', () => {
       document.getElementById('gif-url').value = '';
       syncGifPicks();
+      updateGifPreview();
       update();
     });
 
   // saved GIFs from localStorage
-  loadSavedGifs().forEach(url => addGifPill(url, true));
+  loadSavedGifs().forEach(entry => addGifPill(entry));
 }
 
 renderGifPicks();
 
+/* ── GIF preview ────────────────────────────────────────────── */
+function updateGifPreview() {
+  const url = val('gif-url');
+  const box = document.getElementById('gif-preview');
+  if (!url) {
+    box.style.display = 'none';
+    box.querySelector('img').src = '';
+    return;
+  }
+  box.style.display = 'block';
+  box.querySelector('img').src = url;
+}
+
 document.getElementById('gif-url').addEventListener('input', () => {
   syncGifPicks();
+  updateGifPreview();
   update();
 });
 
