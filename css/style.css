@@ -318,6 +318,31 @@ input::placeholder { color: var(--text-dim); }
   margin-top: 6px;
 }
 
+#gif-url-hint {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface2);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  display: flex;
+  gap: 7px;
+}
+
+#gif-url-hint i { flex-shrink: 0; margin-top: 2px; }
+#gif-url-hint .ti-check { color: var(--success); }
+#gif-url-hint .ti-alert-triangle { color: #e8a84a; }
+#gif-url-hint strong { color: var(--text); }
+#gif-url-hint code {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--surface);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
 #gif-preview {
   margin-top: 8px;
   border-radius: var(--radius);

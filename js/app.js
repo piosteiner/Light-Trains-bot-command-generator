@@ -218,63 +218,65 @@ function updateGifNameRow() {
 
 /* ── GIF preview ────────────────────────────────────────────── */
 
-/* Resolve a page URL (Tenor/Giphy share pages) to a direct media URL.
-   Returns the original URL unchanged if it already looks like a direct image. */
-async function resolveGifUrl(url) {
-  if (!url) return '';
-
-  // Already a direct media link — use as-is
-  if (/\.(gif|mp4|webm)(\?|$)/i.test(url)) return url;
-
-  // Tenor share page: https://tenor.com/view/...
-  if (/tenor\.com\/view\//i.test(url)) {
-    try {
-      // Use allorigins.win as a CORS proxy to fetch the page HTML
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxy);
-      const data = await res.json();
-      // Extract og:image (the .gif preview) from the HTML
-      const match = data.contents.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)
-                 || data.contents.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i);
-      if (match) return match[1];
-    } catch (e) { /* fall through to show broken preview */ }
-  }
-
-  // Giphy share page: https://giphy.com/gifs/...
-  if (/giphy\.com\/gifs\//i.test(url)) {
-    try {
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxy);
-      const data = await res.json();
-      const match = data.contents.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)
-                 || data.contents.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i);
-      if (match) return match[1];
-    } catch (e) { /* fall through */ }
-  }
-
-  return url; // unknown format, try as-is
+/* Returns true if the URL is a direct media host URL that won't embed properly in Discord. */
+function isIncompatibleForDiscord(url) {
+  // Raw media host URLs — Discord doesn't embed these as GIFs via the relay bot
+  if (/media\d*\.tenor\.com/i.test(url)) return true;
+  if (/media\d*\.giphy\.com/i.test(url)) return true;
+  return false;
 }
 
-async function updateGifPreview() {
-  const url = val('gif-url');
-  const box = document.getElementById('gif-preview');
-  const img = box.querySelector('img');
+/* Returns true if the URL is a Tenor/Giphy share page we can't preview locally. */
+function isSharePageUrl(url) {
+  return /tenor\.com\/view\//i.test(url)
+      || /tenor\.com\/[^/]+\.gif/i.test(url)
+      || /giphy\.com\/gifs\//i.test(url);
+}
+
+function updateGifPreview() {
+  const url  = val('gif-url');
+  const box  = document.getElementById('gif-preview');
+  const img  = box.querySelector('img');
+  const hint = document.getElementById('gif-url-hint');
 
   if (!url) {
-    box.style.display = 'none';
+    box.style.display  = 'none';
+    hint.style.display = 'none';
     img.src = '';
     return;
   }
 
-  box.style.display = 'block';
-  img.src = '';
-  img.alt = 'Loading preview…';
+  // Direct media host URLs work as previews here but won't embed in Discord
+  if (isIncompatibleForDiscord(url)) {
+    box.style.display  = 'block';
+    hint.style.display = 'block';
+    hint.innerHTML = `<i class="ti ti-alert-triangle"></i>
+      <span>This <code>media.tenor.com</code> URL won't embed as a GIF in Discord.
+      Use the short Tenor link instead — e.g. <code>https://tenor.com/reygSVZAanM.gif</code>
+      or the <code>tenor.com/view/…</code> share page URL.</span>`;
+    img.onerror = () => { box.style.display = 'none'; };
+    img.onload  = () => { box.style.display = 'block'; };
+    img.src = url;
+    return;
+  }
 
-  const directUrl = await resolveGifUrl(url);
+  // Tenor/Giphy share page URLs — valid for Discord but can't preview locally
+  if (isSharePageUrl(url)) {
+    box.style.display  = 'none';
+    img.src = '';
+    hint.style.display = 'block';
+    hint.innerHTML = `<i class="ti ti-check"></i>
+      <span>This URL will work in Discord. No local preview available for share page links —
+      the GIF will appear properly when posted.</span>`;
+    return;
+  }
 
+  // Direct image URL — preview and use as-is
+  hint.style.display = 'none';
+  box.style.display  = 'block';
   img.onerror = () => { box.style.display = 'none'; };
-  img.onload  = () => { box.style.display = 'block'; img.alt = 'GIF preview'; };
-  img.src = directUrl;
+  img.onload  = () => { box.style.display = 'block'; };
+  img.src = url;
 }
 
 document.getElementById('gif-url').addEventListener('input', () => {
