@@ -96,36 +96,36 @@ const ZONES = {
 /* Rewards per A-rank kill, in display order (smallest to largest quantity) */
 const EXP_REWARDS = {
   ARR: [
-    { amount: 10, emoji: ':mathematics:',  label: null },
-    { amount: 30, emoji: ':poetics:',      label: null },
-    { amount: 20, emoji: null,             label: 'Centurio Seals' },
-    { amount: 40, emoji: null,             label: 'Allied Seals' },
+    { amount: 10, emoji: '<:mathematics:1355013812230553712>',  label: null },
+    { amount: 30, emoji: '<:poetics:1355014355590320248>',      label: null },
+    { amount: 20, emoji: null,                                  label: 'Centurio Seals' },
+    { amount: 40, emoji: null,                                  label: 'Allied Seals' },
   ],
   HW: [
-    { amount: 10, emoji: ':mathematics:',  label: null },
-    { amount: 30, emoji: ':poetics:',      label: null },
-    { amount: 40, emoji: null,             label: 'Centurio Seals' },
+    { amount: 10, emoji: '<:mathematics:1355013812230553712>',  label: null },
+    { amount: 30, emoji: '<:poetics:1355014355590320248>',      label: null },
+    { amount: 40, emoji: null,                                  label: 'Centurio Seals' },
   ],
   SB: [
-    { amount: 10, emoji: ':mathematics:',  label: null },
-    { amount: 30, emoji: ':poetics:',      label: null },
-    { amount: 40, emoji: null,             label: 'Centurio Seals' },
+    { amount: 10, emoji: '<:mathematics:1355013812230553712>',  label: null },
+    { amount: 30, emoji: '<:poetics:1355014355590320248>',      label: null },
+    { amount: 40, emoji: null,                                  label: 'Centurio Seals' },
   ],
   ShB: [
-    { amount: 10, emoji: ':mathematics:',  label: null },
-    { amount: 30, emoji: ':poetics:',      label: null },
-    { amount: 40, emoji: ':sackofnuts:',   label: null },
+    { amount: 10, emoji: '<:mathematics:1355013812230553712>',  label: null },
+    { amount: 30, emoji: '<:poetics:1355014355590320248>',      label: null },
+    { amount: 40, emoji: '<:sackofnuts:1117597415390846977>',   label: null },
   ],
   EW: [
-    { amount: 10, emoji: ':mathematics:',  label: null },
-    { amount: 30, emoji: ':poetics:',      label: null },
-    { amount: 40, emoji: ':sackofnuts:',   label: null },
+    { amount: 10, emoji: '<:mathematics:1355013812230553712>',  label: null },
+    { amount: 30, emoji: '<:poetics:1355014355590320248>',      label: null },
+    { amount: 40, emoji: '<:sackofnuts:1117597415390846977>',   label: null },
   ],
   DT: [
-    { amount: 10, emoji: ':mnemonics:',    label: null },
-    { amount: 20, emoji: ':mathematics:',  label: null },
-    { amount: 30, emoji: ':poetics:',      label: null },
-    { amount: 40, emoji: ':sackofnuts:',   label: null },
+    { amount: 10, emoji: '<:mnemonics:1450577101840187503>',    label: null },
+    { amount: 20, emoji: '<:mathematics:1355013812230553712>',  label: null },
+    { amount: 30, emoji: '<:poetics:1355014355590320248>',      label: null },
+    { amount: 40, emoji: '<:sackofnuts:1117597415390846977>',   label: null },
   ],
 };
 
