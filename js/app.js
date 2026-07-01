@@ -185,13 +185,21 @@ renderGifPicks();
 function updateGifPreview() {
   const url = val('gif-url');
   const box = document.getElementById('gif-preview');
+  const img = box.querySelector('img');
   if (!url) {
     box.style.display = 'none';
-    box.querySelector('img').src = '';
+    img.src = '';
     return;
   }
+  img.onerror = () => {
+    box.style.display = 'none';
+  };
+  img.onload = () => {
+    box.style.display = 'block';
+  };
+  // Set display block optimistically — onload/onerror will correct it
   box.style.display = 'block';
-  box.querySelector('img').src = url;
+  img.src = url;
 }
 
 document.getElementById('gif-url').addEventListener('input', () => {

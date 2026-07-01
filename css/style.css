@@ -315,19 +315,21 @@ input::placeholder { color: var(--text-dim); }
 
 /* GIF live preview */
 #gif-preview {
-  margin-top: 6px;
+  margin-top: 8px;
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border-strong);
   background: var(--surface2);
   max-width: 240px;
+  min-height: 40px;
+  position: relative;
 }
 
 #gif-preview img {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 140px;
+  max-height: 160px;
   object-fit: cover;
 }
 
