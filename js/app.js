@@ -220,10 +220,8 @@ function updateGifNameRow() {
 
 /* Returns true if the URL is a direct media host URL that won't embed properly in Discord. */
 function isIncompatibleForDiscord(url) {
-  // Raw media host URLs — Discord doesn't embed these as GIFs via the relay bot
-  if (/media\d*\.tenor\.com/i.test(url)) return true;
-  if (/media\d*\.giphy\.com/i.test(url)) return true;
-  return false;
+  // Only raw media.tenor.com URLs are known to not embed as GIFs in Discord
+  return /media\d*\.tenor\.com/i.test(url);
 }
 
 /* Returns true if the URL is a Tenor/Giphy share page we can't preview locally. */
