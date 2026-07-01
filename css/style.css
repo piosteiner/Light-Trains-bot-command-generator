@@ -314,6 +314,10 @@ input::placeholder { color: var(--text-dim); }
 .gif-pick-del:hover    { color: #e25c5c; }
 
 /* GIF live preview */
+#gif-name-row {
+  margin-top: 6px;
+}
+
 #gif-preview {
   margin-top: 8px;
   border-radius: var(--radius);

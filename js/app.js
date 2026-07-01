@@ -66,14 +66,16 @@ function saveGif(url) {
   const saved = loadSavedGifs();
   const staticUrls = GIF_LIBRARY.map(g => g.url).filter(Boolean);
   if (staticUrls.includes(url) || saved.some(g => g.url === url)) return;
-  // prompt for a name immediately when saving
-  const name = prompt('Give this GIF a name:', 'My GIF');
-  if (name === null) return; // user cancelled
-  const label = name.trim() || 'My GIF';
+  // read name from inline field, fall back to a generic label
+  const nameInput = document.getElementById('gif-name');
+  const label = (nameInput?.value || '').trim() || 'My GIF';
   const entry = { url, label };
   saved.push(entry);
   persistGifs(saved);
   addGifPill(entry);
+  // reset name field
+  if (nameInput) nameInput.value = '';
+  document.getElementById('gif-name-row').style.display = 'none';
 }
 
 function removeGif(url) {
@@ -181,6 +183,17 @@ function renderGifPicks() {
 
 renderGifPicks();
 
+/* Show the name field only when the URL is new (not already in the library) */
+function updateGifNameRow() {
+  const url = val('gif-url');
+  const nameRow = document.getElementById('gif-name-row');
+  if (!url) { nameRow.style.display = 'none'; return; }
+  const saved = loadSavedGifs();
+  const staticUrls = GIF_LIBRARY.map(g => g.url).filter(Boolean);
+  const isKnown = staticUrls.includes(url) || saved.some(g => g.url === url);
+  nameRow.style.display = isKnown ? 'none' : 'block';
+}
+
 /* ── GIF preview ────────────────────────────────────────────── */
 function updateGifPreview() {
   const url = val('gif-url');
@@ -205,6 +218,7 @@ function updateGifPreview() {
 document.getElementById('gif-url').addEventListener('input', () => {
   syncGifPicks();
   updateGifPreview();
+  updateGifNameRow();
   update();
 });
 
@@ -213,6 +227,10 @@ document.getElementById('gif-url').addEventListener('blur', () => {
   saveGif(val('gif-url'));
 });
 document.getElementById('gif-url').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') saveGif(val('gif-url'));
+});
+// Also save when pressing Enter in the name field
+document.getElementById('gif-name').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') saveGif(val('gif-url'));
 });
 
