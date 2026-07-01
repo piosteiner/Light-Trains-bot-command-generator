@@ -332,8 +332,10 @@ input::placeholder { color: var(--text-dim); }
 }
 
 #gif-url-hint i { flex-shrink: 0; margin-top: 2px; }
-#gif-url-hint .ti-check { color: var(--success); }
+#gif-url-hint .ti-check          { color: var(--success); }
 #gif-url-hint .ti-alert-triangle { color: #e8a84a; }
+#gif-url-hint .ti-loader         { color: var(--text-muted); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 #gif-url-hint strong { color: var(--text); }
 #gif-url-hint code {
   font-family: var(--mono);

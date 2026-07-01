@@ -239,41 +239,62 @@ function updateGifPreview() {
   const img  = box.querySelector('img');
   const hint = document.getElementById('gif-url-hint');
 
-  if (!url) {
-    box.style.display  = 'none';
-    hint.style.display = 'none';
-    img.src = '';
-    return;
-  }
+  hint.style.display = 'none';
+  box.style.display  = 'none';
+  img.src = '';
 
-  // Direct media host URLs work as previews here but won't embed in Discord
+  if (!url) return;
+
+  // Direct media host URLs — previewable locally but won't embed in Discord
   if (isIncompatibleForDiscord(url)) {
-    box.style.display  = 'block';
     hint.style.display = 'block';
     hint.innerHTML = `<i class="ti ti-alert-triangle"></i>
       <span>This <code>media.tenor.com</code> URL won't embed as a GIF in Discord.
-      Use the short Tenor link instead — e.g. <code>https://tenor.com/reygSVZAanM.gif</code>
-      or the <code>tenor.com/view/…</code> share page URL.</span>`;
+      Use the short Tenor link instead — e.g. <code>https://tenor.com/reygSVZAanM.gif</code>.</span>`;
+    box.style.display = 'block';
     img.onerror = () => { box.style.display = 'none'; };
     img.onload  = () => { box.style.display = 'block'; };
     img.src = url;
     return;
   }
 
-  // Tenor/Giphy share page URLs — valid for Discord but can't preview locally
-  if (isSharePageUrl(url)) {
-    box.style.display  = 'none';
-    img.src = '';
+  // Short tenor.com or tenor.com/view URLs — fetch og:image via CORS proxy for preview
+  if (/tenor\.com/i.test(url)) {
     hint.style.display = 'block';
-    hint.innerHTML = `<i class="ti ti-check"></i>
-      <span>This URL will work in Discord. No local preview available for share page links —
-      the GIF will appear properly when posted.</span>`;
+    hint.innerHTML = `<i class="ti ti-loader"></i> <span>Loading preview…</span>`;
+    const proxy = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+    fetch(proxy, { signal: AbortSignal.timeout(7000) })
+      .then(r => r.text())
+      .then(html => {
+        const m = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        if (m && m[1]) {
+          hint.style.display = 'none';
+          img.onerror = () => { box.style.display = 'none'; };
+          img.onload  = () => { box.style.display = 'block'; };
+          img.src = m[1];
+        } else {
+          hint.innerHTML = `<i class="ti ti-check"></i>
+            <span>This URL works in Discord. Preview unavailable.</span>`;
+        }
+      })
+      .catch(() => {
+        hint.innerHTML = `<i class="ti ti-check"></i>
+          <span>This URL works in Discord. Preview unavailable.</span>`;
+      });
     return;
   }
 
-  // Direct image URL — preview and use as-is
-  hint.style.display = 'none';
-  box.style.display  = 'block';
+  // Giphy share page — valid for Discord, no local preview
+  if (/giphy\.com/i.test(url)) {
+    hint.style.display = 'block';
+    hint.innerHTML = `<i class="ti ti-check"></i>
+      <span>This URL works in Discord. No local preview available.</span>`;
+    return;
+  }
+
+  // Any other direct image URL — preview directly
+  box.style.display = 'block';
   img.onerror = () => { box.style.display = 'none'; };
   img.onload  = () => { box.style.display = 'block'; };
   img.src = url;
