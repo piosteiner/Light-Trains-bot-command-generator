@@ -6,6 +6,7 @@ let selectedExps  = [];
 let expData       = {};   // { [exp]: { mapIdx, aeth, targets, scouts, progEnabled, showRewards, customMsg } }
 let noBreaks      = false; // multi-expansion trains: merge into one announcement
 let noBreaksProg  = true;  // progression message in merged mode (on by default)
+let noBreaksRewards = false; // consolidated currency rewards in merged mode
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function val(id) {
@@ -391,12 +392,13 @@ function renderExpSections() {
                oninput="setField('${exp}', 'targets', this.value); this.value = expData['${exp}'].targets;" />
         <span class="targets-sep">/ 12</span>
       </div>
+      ${noBreaks ? '' : `
       <label class="prog-toggle" style="margin-top:2px">
         <input type="checkbox" id="rewards-${exp}"
                ${d.showRewards ? 'checked' : ''}
                onchange="setField('${exp}', 'showRewards', this.checked)" />
         Include currency rewards in message
-      </label>
+      </label>`}
 
       <div class="sub-label">Scouts</div>
       <input type="text" id="scouts-${exp}" value="${escAttr(d.scouts)}"
@@ -442,6 +444,11 @@ function renderTrainOptions() {
         Show progression message
       </label>
       <div class="prog-preview" id="nb-prog-prev" style="margin-top:6px"></div>
+      <label class="prog-toggle" style="margin-top:6px">
+        <input type="checkbox" id="nb-rewards" ${noBreaksRewards ? 'checked' : ''}
+               onchange="toggleNoBreaksRewards(this.checked)" />
+        Include consolidated currency rewards
+      </label>
     ` : ''}
   `;
 }
@@ -456,6 +463,11 @@ function toggleNoBreaks(checked) {
 
 function toggleNoBreaksProg(checked) {
   noBreaksProg = checked;
+  update();
+}
+
+function toggleNoBreaksRewards(checked) {
+  noBreaksRewards = checked;
   update();
 }
 
@@ -661,12 +673,13 @@ function combineScouts() {
   return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
 }
 
-/* Sum currency rewards per currency across expansions with the checkbox ticked. */
+/* Sum currency rewards per currency across all selected expansions,
+   gated on the single consolidated "Include rewards" toggle. */
 function buildMergedRewardLine() {
+  if (!noBreaksRewards) return null;
   const totals = new Map();
   selectedExps.forEach(exp => {
     const d = expData[exp] || {};
-    if (!d.showRewards) return;
     const count = parseInt(d.targets) || 0;
     if (!count) return;
     (EXP_REWARDS[exp] || []).forEach(r => {
