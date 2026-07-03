@@ -379,6 +379,11 @@ function renderExpSections() {
         </div>
       </div>
 
+      <div class="sub-label">Custom message <span class="label-hint">optional — own line after the starting point</span></div>
+      <input type="text" id="cmsg-${exp}" value="${escAttr(d.customMsg || '')}"
+             placeholder="e.g. Please mount up quickly!"
+             oninput="setField('${exp}', 'customMsg', this.value)" />
+
       <div class="sub-label">Targets</div>
       <div class="targets-row">
         <input type="number" id="tgt-${exp}" value="${d.targets}"
@@ -397,11 +402,6 @@ function renderExpSections() {
       <input type="text" id="scouts-${exp}" value="${escAttr(d.scouts)}"
              placeholder="e.g. Presea Brunel, Rosemarie Herz, Ceri Elfari"
              oninput="setField('${exp}', 'scouts', this.value)" />
-
-      <div class="sub-label">Custom message <span class="label-hint">optional — own line after the starting point</span></div>
-      <input type="text" id="cmsg-${exp}" value="${escAttr(d.customMsg || '')}"
-             placeholder="e.g. Please mount up quickly!"
-             oninput="setField('${exp}', 'customMsg', this.value)" />
 
       ${(multi && !noBreaks) ? `
         <div class="exp-divider"></div>
