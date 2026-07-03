@@ -688,14 +688,14 @@ function buildVisualHTML(exp) {
 function buildCwl1Raw(exp) {
   const { world, map, aeth, startInMin } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
-  const timing = isPreShb(exp) ? buildRelativeTimestamp(startInMin) : '10mins';
+  const timing = isPreShb(exp) ? `${parseInt(startInMin, 10) || 5}min` : '10mins';
   return `/cwl1 Running a ${expLabel} A-Rank Hunt Train on ${world} in ${timing}. Join at ${map} - ${aeth} if you want to hunt together <3`;
 }
 
 function buildCwl1Visual(exp) {
   const { world, map, aeth, startInMin } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
-  const timing = isPreShb(exp) ? escHtml(buildRelativeTimestamp(startInMin)) : '10mins';
+  const timing = isPreShb(exp) ? `${parseInt(startInMin, 10) || 5}min` : '10mins';
   return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabel)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in ${timing}. Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
 }
 
