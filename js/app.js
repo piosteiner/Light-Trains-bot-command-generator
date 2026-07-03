@@ -339,7 +339,7 @@ document.querySelectorAll('#exp-pills .pill').forEach(p => {
     p.classList.toggle('active', selectedExps.includes(exp));
 
     if (!expData[exp]) {
-      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false, customMsg: '' };
+      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false, customMsg: '', startInMin: '5' };
     }
 
     renderTrainOptions();
@@ -379,6 +379,13 @@ function renderExpSections() {
           <div class="combo" id="combo-aeth-${exp}"></div>
         </div>
       </div>
+
+      ${isPreShb(exp) ? `
+      <div class="sub-label">Starts in (minutes)</div>
+      <input type="number" id="starttime-${exp}" value="${d.startInMin}"
+             min="0" max="180" placeholder="e.g. 5"
+             oninput="setField('${exp}', 'startInMin', this.value); this.value = expData['${exp}'].startInMin;" />
+      ` : ''}
 
       <div class="sub-label">Custom message <span class="label-hint">optional — own line after the starting point</span></div>
       <input type="text" id="cmsg-${exp}" value="${escAttr(d.customMsg || '')}"
@@ -520,6 +527,9 @@ function setField(exp, key, value) {
   if (key === 'targets') {
     value = clampTargets(value);
   }
+  if (key === 'startInMin') {
+    value = clampMinutes(value);
+  }
   expData[exp][key] = value;
   updateProgPreviews();
   clearInvalidIfFilled(exp, key, value);
@@ -529,9 +539,19 @@ function setField(exp, key, value) {
 /* Remove the red outline the moment a previously-empty field gets a value. */
 function clearInvalidIfFilled(exp, key, value) {
   if (!value) return;
-  const idMap = { targets: `tgt-${exp}`, scouts: `scouts-${exp}` };
+  const idMap = { targets: `tgt-${exp}`, scouts: `scouts-${exp}`, startInMin: `starttime-${exp}` };
   const id = idMap[key];
   if (id) document.getElementById(id)?.classList.remove('field-invalid');
+}
+
+/* Clamp start-time minutes to a sane 0–180 range; non-numeric becomes ''. */
+function clampMinutes(value) {
+  if (value === '') return '';
+  let n = parseInt(value, 10);
+  if (isNaN(n)) return '';
+  if (n < 0) n = 0;
+  if (n > 180) n = 180;
+  return String(n);
 }
 
 /* Clamp target count to the valid 0–12 range; non-numeric becomes ''. */
@@ -585,6 +605,19 @@ function buildRewardLine(exp, targets) {
     .join(' | ');
 }
 
+/* Pre-Shadowbringers expansions use .msh with a relative start-time line
+   instead of .sh, since these older hunt zones need a scheduled start. */
+function isPreShb(exp) {
+  return EXP_ORDER.indexOf(exp) < EXP_ORDER.indexOf('ShB');
+}
+
+/* Build a Discord relative timestamp tag from a number of minutes from now. */
+function buildRelativeTimestamp(minutes) {
+  const mins = parseInt(minutes) || 0;
+  const unix = Math.floor(Date.now() / 1000) + mins * 60;
+  return `<t:${unix}:R>`;
+}
+
 /* ── Build parts shared by raw + visual ─────────────────────── */
 function buildParts(exp) {
   const world  = getComboVal('combo-world') || 'WORLD';
@@ -602,28 +635,46 @@ function buildParts(exp) {
     ? buildProgText(exp)
     : null;
   const reward = (d.showRewards) ? buildRewardLine(exp, d.targets) : null;
-  return { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, expNum: EXP_NUMS[exp] };
+  const startInMin = d.startInMin;
+  return { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, startInMin, expNum: EXP_NUMS[exp] };
 }
 
 /* ── Raw command (real newlines, Discord markdown) ──────────── */
 function buildRawCmd(exp) {
-  const { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, expNum } = buildParts(exp);
+  const { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, startInMin, expNum } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
   const progLine   = prog   ? `\n*${prog}*`  : '';
   const rewardLine = reward ? `\n${reward}`  : '';
   const cmsgLine   = cmsg   ? `\n${cmsg}`    : '';
+
+  if (isPreShb(exp)) {
+    const ts = buildRelativeTimestamp(startInMin);
+    return `.msh "On **${world}** at ${map} - **${aeth}** in ${ts}${cmsgLine}\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
+  }
   return `.sh ${world} "${map} - **${aeth}**${cmsgLine}\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
 /* ── Visual HTML (rendered in the preview box) ──────────────── */
 function buildVisualHTML(exp) {
-  const { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, expNum } = buildParts(exp);
+  const { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, startInMin, expNum } = buildParts(exp);
   const expLabel   = EXP_LABELS[exp];
   const progLine   = prog
     ? `\n<span class="pv-italic">${escHtml(prog)}</span>`
     : '';
   const rewardLine = reward ? `\n${escHtml(reward)}` : '';
   const cmsgLine   = cmsg   ? `\n${escHtml(cmsg)}`   : '';
+
+  if (isPreShb(exp)) {
+    const ts = escHtml(buildRelativeTimestamp(startInMin));
+    return `.msh "\n`
+      + `On <span class="pv-bold">${escHtml(world)}</span> at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> in ${ts}${cmsgLine}\n`
+      + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
+      + `:dart: Targets : ${escHtml(tgt)}/12${rewardLine}\n`
+      + `:train2: Speed: ${escHtml(speedStr)}\n`
+      + `:eyes: Scouts: <span class="pv-italic">${escHtml(scouts)}</span>`
+      + `${progLine}\n:person_gesturing_ok:\n" ${expNum}`;
+  }
+
   return `.sh ${escHtml(world)} "\n`
     + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${cmsgLine}\n`
     + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
@@ -635,26 +686,30 @@ function buildVisualHTML(exp) {
 
 /* ── CWL1 join-message (separate copyable text) ─────────────── */
 function buildCwl1Raw(exp) {
-  const { world, map, aeth } = buildParts(exp);
+  const { world, map, aeth, startInMin } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
-  return `/cwl1 Running a ${expLabel} A-Rank Hunt Train on ${world} in 10mins. Join at ${map} - ${aeth} if you want to hunt together <3`;
+  const timing = isPreShb(exp) ? buildRelativeTimestamp(startInMin) : '10mins';
+  return `/cwl1 Running a ${expLabel} A-Rank Hunt Train on ${world} in ${timing}. Join at ${map} - ${aeth} if you want to hunt together <3`;
 }
 
 function buildCwl1Visual(exp) {
-  const { world, map, aeth } = buildParts(exp);
+  const { world, map, aeth, startInMin } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
-  return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabel)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in 10mins. Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
+  const timing = isPreShb(exp) ? escHtml(buildRelativeTimestamp(startInMin)) : '10mins';
+  return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabel)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in ${timing}. Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
 }
 
 /* ── Scouts macro (separate copyable text, per expansion) ────── */
 function buildScoutsRaw(exp) {
   const { scouts } = buildParts(exp);
-  return `/sh This train was scouted by ${scouts}\n/p This train was scouted by ${scouts}`;
+  const cmd = isPreShb(exp) ? '/msh' : '/sh';
+  return `${cmd} This train was scouted by ${scouts}\n/p This train was scouted by ${scouts}`;
 }
 
 function buildScoutsVisual(exp) {
   const { scouts } = buildParts(exp);
-  return `/sh This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>\n/p This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>`;
+  const cmd = isPreShb(exp) ? '/msh' : '/sh';
+  return `${cmd} This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>\n/p This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>`;
 }
 
 /* ── Merged (no-breaks) builders ─────────────────────────────── */
@@ -811,6 +866,13 @@ function validateFields(exp) {
   scoutsInput?.classList.toggle('field-invalid', !scoutsOk);
   if (!scoutsOk) valid = false;
 
+  if (isPreShb(exp)) {
+    const startInput = document.getElementById(`starttime-${exp}`);
+    const startOk = !!(expData[exp]?.startInMin);
+    startInput?.classList.toggle('field-invalid', !startOk);
+    if (!startOk) valid = false;
+  }
+
   return valid;
 }
 
@@ -822,7 +884,14 @@ function copyCmd(exp, el) {
   }
   const raw = buildRawCmd(exp);
   copyToClipboard(raw, el);
-  if (typeof startTrainTimer === 'function') startTrainTimer();
+  if (typeof startTrainTimer === 'function') {
+    if (isPreShb(exp)) {
+      const mins = parseInt(expData[exp]?.startInMin, 10) || 5;
+      startTrainTimer(mins * 60);
+    } else {
+      startTrainTimer();
+    }
+  }
 }
 
 function copyCwl1(exp, el) {
