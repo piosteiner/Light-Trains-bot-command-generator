@@ -751,6 +751,11 @@ function buildMergedScoutsVisual() {
 }
 
 /* ── Train control commands (.start / .end) ─────────────────── */
+/* Only Shadowbringers onward support .start/.end train control. */
+function hasTrainControl(exp) {
+  return EXP_ORDER.indexOf(exp) >= EXP_ORDER.indexOf('ShB');
+}
+
 function buildEndCmd(exp) {
   const world = getComboVal('combo-world') || 'WORLD';
   return `.end ${world} ${EXP_NUMS[exp]}`;
@@ -914,12 +919,13 @@ function update() {
       <div class="preview-visual" id="pvs-${exp}" onclick="copyScouts('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildScoutsVisual(exp)}
       </div>
+      ${hasTrainControl(exp) ? `
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">${EXP_ICONS[exp]}</span> End train
       </div>
       <div class="preview-visual pv-small" id="pve-${exp}" onclick="copyEnd('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildEndCmd(exp))}
-      </div>
+      </div>` : ''}
     </div>
   `).join('');
 }
@@ -938,15 +944,19 @@ function renderMergedPreview(area) {
     </div>
   `).join('');
 
-  const controlBlocks = selectedExps.map((exp, i) => `
-    ${i > 0 ? `
+  const controlBlocks = selectedExps
+    .filter(exp => hasTrainControl(exp))
+    .map(exp => {
+      const isFirstOverall = selectedExps[0] === exp;
+      return `
+    ${!isFirstOverall ? `
     <div class="preview-visual pv-small" id="pvst-${exp}" onclick="copyStart('${exp}', this)" style="margin-bottom:6px">
       <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildStartCmd(exp))}
     </div>` : ''}
     <div class="preview-visual pv-small" id="pve-${exp}" onclick="copyEnd('${exp}', this)" style="margin-bottom:6px">
       <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildEndCmd(exp))}
-    </div>
-  `).join('');
+    </div>`;
+    }).join('');
 
   area.innerHTML = `
     <div class="preview-block" style="border-left:3px solid var(--exp-color-${first}); padding-left:.75rem">
@@ -969,10 +979,11 @@ function renderMergedPreview(area) {
       <div class="preview-visual" id="pvs-merged" onclick="copyMergedScouts(this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMergedScoutsVisual()}
       </div>
+      ${controlBlocks ? `
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">🏁</span> Train control (.start on reaching an expansion, .end when done)
       </div>
-      ${controlBlocks}
+      ${controlBlocks}` : ''}
     </div>
   `;
 }
