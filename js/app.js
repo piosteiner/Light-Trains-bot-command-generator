@@ -889,7 +889,7 @@ function copyCmd(exp, el) {
       const mins = parseInt(expData[exp]?.startInMin, 10) || 5;
       startTrainTimer(mins * 60);
     } else {
-      startTrainTimer();
+      startTrainTimer(window.TIMER_DEFAULT_DURATION);
     }
   }
 }
@@ -924,7 +924,15 @@ function validateAllExps() {
 function copyMergedCmd(el) {
   if (!validateAllExps()) { flashInvalid(el); return; }
   copyToClipboard(buildMergedRawCmd(), el);
-  if (typeof startTrainTimer === 'function') startTrainTimer();
+  if (typeof startTrainTimer === 'function') {
+    const first = selectedExps[0];
+    if (isPreShb(first)) {
+      const mins = parseInt(expData[first]?.startInMin, 10) || 5;
+      startTrainTimer(mins * 60);
+    } else {
+      startTrainTimer(window.TIMER_DEFAULT_DURATION);
+    }
+  }
 }
 
 function copyMsh(exp, el) {

@@ -589,11 +589,19 @@ input::placeholder { color: var(--text-dim); }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
 }
 
-#timer-panel.finished {
-  border-color: var(--success-border);
-  box-shadow: 0 8px 28px rgba(62, 207, 142, 0.2);
+/* Counting up past zero — train is running late / overtime */
+#timer-panel.overtime {
+  border-color: #e8a84a;
+  box-shadow: 0 8px 28px rgba(232, 168, 74, 0.2);
+}
+
+/* Paused — session exists but not currently counting */
+#timer-panel.paused {
+  border-color: var(--border-strong);
+  opacity: 0.8;
 }
 
 .timer-head {
@@ -631,9 +639,11 @@ input::placeholder { color: var(--text-dim); }
   color: var(--text);
   letter-spacing: 0.03em;
   line-height: 1.1;
+  transition: color 0.2s;
 }
 
-#timer-panel.finished #timer-display { color: var(--success); }
+#timer-panel.overtime #timer-display { color: #e8a84a; }
+#timer-panel.paused #timer-display   { color: var(--text-muted); }
 
 .timer-controls {
   display: flex;
@@ -672,9 +682,16 @@ input::placeholder { color: var(--text-dim); }
   display: flex;
   align-items: center;
   transition: all 0.12s;
+  flex: 1;
+  justify-content: center;
 }
 
 .timer-controls button:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+#timer-pause {
   color: var(--accent);
   border-color: var(--accent-border);
 }

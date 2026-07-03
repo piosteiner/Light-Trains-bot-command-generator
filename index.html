@@ -89,8 +89,11 @@
   <div id="timer-display">10:30</div>
   <div class="timer-controls">
     <input type="text" id="timer-set" value="10:30" title="Set time (mm:ss)" />
-    <button id="timer-apply" title="Set &amp; restart"><i class="ti ti-player-play"></i></button>
-    <button id="timer-reset" title="Reset"><i class="ti ti-refresh"></i></button>
+    <button id="timer-apply" title="Set &amp; start"><i class="ti ti-player-play"></i></button>
+  </div>
+  <div class="timer-controls">
+    <button id="timer-pause" title="Pause / Resume"><i class="ti ti-player-pause" id="timer-pause-icon"></i></button>
+    <button id="timer-reset" title="Reset to full time (does not start)"><i class="ti ti-refresh"></i></button>
   </div>
   <div class="timer-controls">
     <select id="timer-sound" title="Sound mode">
