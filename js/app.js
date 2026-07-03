@@ -3,7 +3,9 @@
 /* ── State ─────────────────────────────────────────────────── */
 let selectedSpeed = 'relaxed';
 let selectedExps  = [];
-let expData       = {};   // { [exp]: { mapIdx, aeth, targets, scouts, progEnabled } }
+let expData       = {};   // { [exp]: { mapIdx, aeth, targets, scouts, progEnabled, showRewards, customMsg } }
+let noBreaks      = false; // multi-expansion trains: merge into one announcement
+let noBreaksProg  = true;  // progression message in merged mode (on by default)
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function val(id) {
@@ -26,6 +28,13 @@ function escHtml(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function escAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
 }
 
 /* ── World combobox ─────────────────────────────────────────── */
@@ -224,12 +233,6 @@ function isIncompatibleForDiscord(url) {
   return /media\d*\.tenor\.com/i.test(url);
 }
 
-/* Returns true if the URL is a Tenor/Giphy share page we can't preview locally. */
-function isSharePageUrl(url) {
-  return /tenor\.com\/view\//i.test(url)
-      || /tenor\.com\/[^/]+\.gif/i.test(url)
-      || /giphy\.com\/gifs\//i.test(url);
-}
 
 function updateGifPreview() {
   const url  = val('gif-url');
@@ -284,7 +287,7 @@ function updateGifPreview() {
   }
 
   // Giphy share page — valid for Discord, no local preview
-  if (/giphy\.com/i.test(url)) {
+  if (/giphy\.com\/gifs\//i.test(url)) {
     hint.style.display = 'block';
     hint.innerHTML = `<i class="ti ti-check"></i>
       <span>This URL works in Discord. No local preview available.</span>`;
@@ -335,9 +338,10 @@ document.querySelectorAll('#exp-pills .pill').forEach(p => {
     p.classList.toggle('active', selectedExps.includes(exp));
 
     if (!expData[exp]) {
-      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false };
+      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false, customMsg: '' };
     }
 
+    renderTrainOptions();
     renderExpSections();
     update();
   });
@@ -390,11 +394,16 @@ function renderExpSections() {
       </label>
 
       <div class="sub-label">Scouts</div>
-      <input type="text" id="scouts-${exp}" value="${d.scouts}"
+      <input type="text" id="scouts-${exp}" value="${escAttr(d.scouts)}"
              placeholder="e.g. Presea Brunel, Rosemarie Herz, Ceri Elfari"
              oninput="setField('${exp}', 'scouts', this.value)" />
 
-      ${multi ? `
+      <div class="sub-label">Custom message <span class="label-hint">optional — own line after the starting point</span></div>
+      <input type="text" id="cmsg-${exp}" value="${escAttr(d.customMsg || '')}"
+             placeholder="e.g. Please mount up quickly!"
+             oninput="setField('${exp}', 'customMsg', this.value)" />
+
+      ${(multi && !noBreaks) ? `
         <div class="exp-divider"></div>
         <label class="prog-toggle">
           <input type="checkbox" id="prog-${exp}"
@@ -409,6 +418,45 @@ function renderExpSections() {
     container.appendChild(sec);
     initMapCombo(exp);
   });
+}
+
+/* ── Train-level options (shown when 2+ expansions selected) ── */
+function renderTrainOptions() {
+  const box = document.getElementById('train-options');
+  if (!box) return;
+  if (selectedExps.length < 2) {
+    box.innerHTML = '';
+    noBreaks = false;
+    return;
+  }
+  box.innerHTML = `
+    <label class="prog-toggle" style="margin-top:8px">
+      <input type="checkbox" id="no-breaks" ${noBreaks ? 'checked' : ''}
+             onchange="toggleNoBreaks(this.checked)" />
+      No breaks — one merged announcement for all expansions
+    </label>
+    ${noBreaks ? `
+      <label class="prog-toggle" style="margin-top:6px">
+        <input type="checkbox" id="nb-prog" ${noBreaksProg ? 'checked' : ''}
+               onchange="toggleNoBreaksProg(this.checked)" />
+        Show progression message
+      </label>
+      <div class="prog-preview" id="nb-prog-prev" style="margin-top:6px"></div>
+    ` : ''}
+  `;
+}
+
+function toggleNoBreaks(checked) {
+  noBreaks = checked;
+  if (checked) noBreaksProg = true; // ticked by default for no-break trains
+  renderTrainOptions();
+  renderExpSections();
+  update();
+}
+
+function toggleNoBreaksProg(checked) {
+  noBreaksProg = checked;
+  update();
 }
 
 function initMapCombo(exp) {
@@ -491,11 +539,16 @@ function toggleProg(exp, checked) {
 
 /* ── Progression text ───────────────────────────────────────── */
 function buildProgText(currentExp) {
-  const idx   = selectedExps.indexOf(currentExp);
   const total = selectedExps.length;
-  const parts = selectedExps.map((e, i) => i < idx ? `~~${e}~~` : e);
   const word  = total === 2 ? 'double train' : total === 3 ? 'triple train' : `${total}x train`;
-  return `${parts.join(' > ')} ${word} with breaks in between!`;
+  if (noBreaks) {
+    const breakWord = total === 2 ? 'with no break in between!' : 'with no breaks in between!';
+    return `${selectedExps.join(' > ')} ${word} ${breakWord}`;
+  }
+  const idx       = selectedExps.indexOf(currentExp);
+  const parts     = selectedExps.map((e, i) => i < idx ? `~~${e}~~` : e);
+  const breakWord = total === 2 ? 'with a break in between!' : 'with breaks in between!';
+  return `${parts.join(' > ')} ${word} ${breakWord}`;
 }
 
 function updateProgPreviews() {
@@ -503,6 +556,8 @@ function updateProgPreviews() {
     const el = document.getElementById(`prog-prev-${exp}`);
     if (el) el.textContent = buildProgText(exp);
   });
+  const nb = document.getElementById('nb-prog-prev');
+  if (nb && selectedExps.length) nb.textContent = buildProgText(selectedExps[0]);
 }
 
 /* ── Reward calculation ─────────────────────────────────────── */
@@ -530,32 +585,35 @@ function buildParts(exp) {
   const aeth   = getComboVal(`combo-aeth-${exp}`) || d.aeth || 'AETHERYTE';
   const tgt    = d.targets || 'XX';
   const scouts = d.scouts  || 'NAMES';
+  const cmsg   = (d.customMsg || '').trim();
   const prog   = (d.progEnabled && selectedExps.length > 1)
     ? buildProgText(exp)
     : null;
   const reward = (d.showRewards) ? buildRewardLine(exp, d.targets) : null;
-  return { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum: EXP_NUMS[exp] };
+  return { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, expNum: EXP_NUMS[exp] };
 }
 
 /* ── Raw command (real newlines, Discord markdown) ──────────── */
 function buildRawCmd(exp) {
-  const { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum } = buildParts(exp);
+  const { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, expNum } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
-  const progLine   = prog   ? `\n*${prog}*`           : '';
-  const rewardLine = reward ? `\n${reward}`    : '';
-  return `.sh ${world} "${map} - **${aeth}**\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
+  const progLine   = prog   ? `\n*${prog}*`  : '';
+  const rewardLine = reward ? `\n${reward}`  : '';
+  const cmsgLine   = cmsg   ? `\n${cmsg}`    : '';
+  return `.sh ${world} "${map} - **${aeth}**${cmsgLine}\n:book: Expansion: **${expLabel}**\n:dart: Targets : ${tgt}/12${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
 /* ── Visual HTML (rendered in the preview box) ──────────────── */
 function buildVisualHTML(exp) {
-  const { world, speedStr, map, aeth, tgt, scouts, prog, reward, expNum } = buildParts(exp);
+  const { world, speedStr, map, aeth, tgt, scouts, cmsg, prog, reward, expNum } = buildParts(exp);
   const expLabel   = EXP_LABELS[exp];
   const progLine   = prog
     ? `\n<span class="pv-italic">${escHtml(prog)}</span>`
     : '';
   const rewardLine = reward ? `\n${escHtml(reward)}` : '';
+  const cmsgLine   = cmsg   ? `\n${escHtml(cmsg)}`   : '';
   return `.sh ${escHtml(world)} "\n`
-    + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>\n`
+    + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${cmsgLine}\n`
     + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
     + `:dart: Targets : ${escHtml(tgt)}/12${rewardLine}\n`
     + `:train2: Speed: ${escHtml(speedStr)}\n`
@@ -585,6 +643,122 @@ function buildScoutsRaw(exp) {
 function buildScoutsVisual(exp) {
   const { scouts } = buildParts(exp);
   return `/sh This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>\n/p This train was scouted by <span class="pv-italic">${escHtml(scouts)}</span>`;
+}
+
+/* ── Merged (no-breaks) builders ─────────────────────────────── */
+
+/* Combine scout names across expansions.
+   Same names everywhere -> single string; different -> "A (ShB), B (EW) and C (DT)" */
+function combineScouts() {
+  const entries = selectedExps.map(exp => ({
+    exp,
+    scouts: (expData[exp]?.scouts || '').trim() || 'NAMES',
+  }));
+  const allSame = entries.every(e => e.scouts === entries[0].scouts);
+  if (allSame) return entries[0].scouts;
+  const parts = entries.map(e => `${e.scouts} (${e.exp})`);
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+
+/* Sum currency rewards per currency across expansions with the checkbox ticked. */
+function buildMergedRewardLine() {
+  const totals = new Map();
+  selectedExps.forEach(exp => {
+    const d = expData[exp] || {};
+    if (!d.showRewards) return;
+    const count = parseInt(d.targets) || 0;
+    if (!count) return;
+    (EXP_REWARDS[exp] || []).forEach(r => {
+      const key = r.emoji || r.label;
+      totals.set(key, (totals.get(key) || 0) + r.amount * count);
+    });
+  });
+  if (!totals.size) return null;
+  return [...totals.entries()].map(([k, v]) => `${v} ${k}`).join(' | ');
+}
+
+function buildMergedParts() {
+  const first = selectedExps[0];
+  const { world, speedStr, map, aeth, cmsg } = buildParts(first);
+  const expLabels = selectedExps.map(e => EXP_LABELS[e]).join(' & ');
+  const targets   = selectedExps.map(e => `${expData[e]?.targets || 'XX'}/12`).join(' & ');
+  const scouts    = combineScouts();
+  const reward    = buildMergedRewardLine();
+  const prog      = noBreaksProg ? buildProgText(first) : null;
+  return { world, speedStr, map, aeth, cmsg, expLabels, targets, scouts, reward, prog, expNum: EXP_NUMS[first] };
+}
+
+function buildMergedRawCmd() {
+  const { world, speedStr, map, aeth, cmsg, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
+  const cmsgLine   = cmsg   ? `\n${cmsg}`   : '';
+  const rewardLine = reward ? `\n${reward}` : '';
+  const progLine   = prog   ? `\n*${prog}*` : '';
+  return `.sh ${world} "${map} - **${aeth}**${cmsgLine}\n:book: Expansions: **${expLabels}**\n:dart: Targets : ${targets}${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
+}
+
+function buildMergedVisualHTML() {
+  const { world, speedStr, map, aeth, cmsg, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
+  const cmsgLine   = cmsg   ? `\n${escHtml(cmsg)}`   : '';
+  const rewardLine = reward ? `\n${escHtml(reward)}` : '';
+  const progLine   = prog   ? `\n<span class="pv-italic">${escHtml(prog)}</span>` : '';
+  return `.sh ${escHtml(world)} "\n`
+    + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${cmsgLine}\n`
+    + `:book: Expansions: <span class="pv-bold">${escHtml(expLabels)}</span>\n`
+    + `:dart: Targets : ${escHtml(targets)}${rewardLine}\n`
+    + `:train2: Speed: ${escHtml(speedStr)}\n`
+    + `:eyes: Scouts: <span class="pv-italic">${escHtml(scouts)}</span>`
+    + `${progLine}\n:person_gesturing_ok:\n" ${expNum}`;
+}
+
+/* Mid-train starting-location announcements (expansions 2+) */
+function buildMshRaw(exp) {
+  const { map, aeth, cmsg } = buildParts(exp);
+  const cm = cmsg ? ` ${cmsg}` : '';
+  return `.msh "${map} - **${aeth}** will be the starting location for the "${EXP_LABELS[exp]}" expansion.${cm}" ${EXP_NUMS[exp]}`;
+}
+
+function buildMshVisual(exp) {
+  const { map, aeth, cmsg } = buildParts(exp);
+  const cm = cmsg ? ` ${escHtml(cmsg)}` : '';
+  return `.msh "${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> will be the starting location for the "${escHtml(EXP_LABELS[exp])}" expansion.${cm}" ${EXP_NUMS[exp]}`;
+}
+
+function buildMergedCwl1Raw() {
+  const { world, map, aeth, expLabels } = buildMergedParts();
+  const breakNote = selectedExps.length === 2
+    ? 'There will be no break between the expansions.'
+    : 'There will be no breaks between the expansions.';
+  return `/cwl1 Running a ${expLabels} A-Rank Hunt Train on ${world} in 10mins. ${breakNote} Join at ${map} - ${aeth} if you want to hunt together <3`;
+}
+
+function buildMergedCwl1Visual() {
+  const { world, map, aeth, expLabels } = buildMergedParts();
+  const breakNote = selectedExps.length === 2
+    ? 'There will be no break between the expansions.'
+    : 'There will be no breaks between the expansions.';
+  return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabels)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in 10mins. ${breakNote} Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
+}
+
+function buildMergedScoutsRaw() {
+  const s = combineScouts();
+  return `/sh This train was scouted by ${s}\n/p This train was scouted by ${s}`;
+}
+
+function buildMergedScoutsVisual() {
+  const s = escHtml(combineScouts());
+  return `/sh This train was scouted by <span class="pv-italic">${s}</span>\n/p This train was scouted by <span class="pv-italic">${s}</span>`;
+}
+
+/* ── Train control commands (.start / .end) ─────────────────── */
+function buildEndCmd(exp) {
+  const world = getComboVal('combo-world') || 'WORLD';
+  return `.end ${world} ${EXP_NUMS[exp]}`;
+}
+
+function buildStartCmd(exp) {
+  const world = getComboVal('combo-world') || 'WORLD';
+  return `.start ${world} ${EXP_NUMS[exp]}`;
 }
 
 /* ── Required-field validation ───────────────────────────────── */
@@ -630,6 +804,7 @@ function copyCmd(exp, el) {
   }
   const raw = buildRawCmd(exp);
   copyToClipboard(raw, el);
+  if (typeof startTrainTimer === 'function') startTrainTimer();
 }
 
 function copyCwl1(exp, el) {
@@ -651,6 +826,36 @@ function copyScouts(exp, el) {
   const raw = buildScoutsRaw(exp);
   copyToClipboard(raw, el);
 }
+
+/* ── Merged-mode copy handlers ──────────────────────────────── */
+function validateAllExps() {
+  let ok = true;
+  selectedExps.forEach(e => { if (!validateFields(e)) ok = false; });
+  return ok;
+}
+
+function copyMergedCmd(el) {
+  if (!validateAllExps()) { flashInvalid(el); return; }
+  copyToClipboard(buildMergedRawCmd(), el);
+  if (typeof startTrainTimer === 'function') startTrainTimer();
+}
+
+function copyMsh(exp, el) {
+  if (!validateFields(exp)) { flashInvalid(el); return; }
+  copyToClipboard(buildMshRaw(exp), el);
+}
+
+function copyMergedCwl1(el) {
+  if (!validateAllExps()) { flashInvalid(el); return; }
+  copyToClipboard(buildMergedCwl1Raw(), el);
+}
+
+function copyMergedScouts(el) {
+  copyToClipboard(buildMergedScoutsRaw(), el);
+}
+
+function copyEnd(exp, el)   { copyToClipboard(buildEndCmd(exp), el); }
+function copyStart(exp, el) { copyToClipboard(buildStartCmd(exp), el); }
 
 function flashInvalid(el) {
   el.classList.add('blocked');
@@ -683,6 +888,11 @@ function update() {
     return;
   }
 
+  if (noBreaks && selectedExps.length > 1) {
+    renderMergedPreview(area);
+    return;
+  }
+
   area.innerHTML = selectedExps.map((exp, i) => `
     ${i > 0 ? '<div class="exp-preview-divider"></div>' : ''}
     <div class="preview-block" style="border-left:3px solid var(--exp-color-${exp}); padding-left:.75rem">
@@ -704,8 +914,67 @@ function update() {
       <div class="preview-visual" id="pvs-${exp}" onclick="copyScouts('${exp}', this)">
         <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildScoutsVisual(exp)}
       </div>
+      <div class="preview-exp-label" style="margin-top:.6rem">
+        <span class="exp-icon">${EXP_ICONS[exp]}</span> End train
+      </div>
+      <div class="preview-visual pv-small" id="pve-${exp}" onclick="copyEnd('${exp}', this)">
+        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildEndCmd(exp))}
+      </div>
     </div>
   `).join('');
+}
+
+/* ── Merged (no-breaks) preview rendering ────────────────────── */
+function renderMergedPreview(area) {
+  const first  = selectedExps[0];
+  const others = selectedExps.slice(1);
+
+  const mshBlocks = others.map(exp => `
+    <div class="preview-exp-label" style="margin-top:.6rem">
+      <span class="exp-icon">${EXP_ICONS[exp]}</span> ${EXP_LABELS[exp]} — mid-train starting location
+    </div>
+    <div class="preview-visual" id="pvm-${exp}" onclick="copyMsh('${exp}', this)">
+      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMshVisual(exp)}
+    </div>
+  `).join('');
+
+  const controlBlocks = selectedExps.map((exp, i) => `
+    ${i > 0 ? `
+    <div class="preview-visual pv-small" id="pvst-${exp}" onclick="copyStart('${exp}', this)" style="margin-bottom:6px">
+      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildStartCmd(exp))}
+    </div>` : ''}
+    <div class="preview-visual pv-small" id="pve-${exp}" onclick="copyEnd('${exp}', this)" style="margin-bottom:6px">
+      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildEndCmd(exp))}
+    </div>
+  `).join('');
+
+  area.innerHTML = `
+    <div class="preview-block" style="border-left:3px solid var(--exp-color-${first}); padding-left:.75rem">
+      <div class="preview-exp-label">
+        <span class="exp-icon">🚄</span> Merged train announcement (${selectedExps.join(' > ')})
+      </div>
+      <div class="preview-visual" id="pv-merged" onclick="copyMergedCmd(this)">
+        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMergedVisualHTML()}
+      </div>
+      ${mshBlocks}
+      <div class="preview-exp-label" style="margin-top:.6rem">
+        <span class="exp-icon">💬</span> CWLS message
+      </div>
+      <div class="preview-visual" id="pvc-merged" onclick="copyMergedCwl1(this)">
+        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMergedCwl1Visual()}
+      </div>
+      <div class="preview-exp-label" style="margin-top:.6rem">
+        <span class="exp-icon">🔭</span> Scouts macro
+      </div>
+      <div class="preview-visual" id="pvs-merged" onclick="copyMergedScouts(this)">
+        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMergedScoutsVisual()}
+      </div>
+      <div class="preview-exp-label" style="margin-top:.6rem">
+        <span class="exp-icon">🏁</span> Train control (.start on reaching an expansion, .end when done)
+      </div>
+      ${controlBlocks}
+    </div>
+  `;
 }
 
 /* ── Init ───────────────────────────────────────────────────── */
