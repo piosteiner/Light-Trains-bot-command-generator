@@ -12,6 +12,7 @@
 
 (function () {
   const SOUND_KEY = 'hunt-train-timer-sound';
+  const VOICE_KEY = 'hunt-train-timer-voice';
   const DUR_KEY   = 'hunt-train-timer-duration';
 
   window.TIMER_DEFAULT_DURATION = 630; // 10:30 — single source of truth for app.js too
@@ -29,6 +30,7 @@
   let hasSession    = false;
   let interval      = null;
   let fired         = new Set();
+  let voices        = []; // cached speechSynthesis voice list
 
   const THRESHOLDS = [
     { t: 600, say: '10 minutes',       beeps: 2, freq: 880 },
@@ -39,13 +41,58 @@
   ];
 
   /* ── Sound ── */
-  function getSoundMode() { return localStorage.getItem(SOUND_KEY) || 'voice'; }
+  function getSoundMode()  { return localStorage.getItem(SOUND_KEY) || 'voice'; }
+  function getVoiceName()  { return localStorage.getItem(VOICE_KEY) || ''; }
+
+  /* Voices load asynchronously in most browsers (Chrome fires 'voiceschanged'
+     once they're ready; Firefox/Safari often have them immediately). We
+     re-populate the dropdown whenever the list changes so it's never empty. */
+  function refreshVoices() {
+    try {
+      voices = speechSynthesis.getVoices() || [];
+    } catch { voices = []; }
+    populateVoiceSelect();
+  }
+
+  function populateVoiceSelect() {
+    const sel = document.getElementById('timer-voice');
+    if (!sel) return;
+    const saved = getVoiceName();
+    const current = sel.value || saved;
+
+    sel.innerHTML = '<option value="">Browser default</option>';
+    // English voices first (most useful for train callouts), then everything else
+    const sorted = [...voices].sort((a, b) => {
+      const aEn = a.lang.toLowerCase().startsWith('en') ? 0 : 1;
+      const bEn = b.lang.toLowerCase().startsWith('en') ? 0 : 1;
+      if (aEn !== bEn) return aEn - bEn;
+      return a.name.localeCompare(b.name);
+    });
+    sorted.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = `${v.name} (${v.lang})`;
+      sel.appendChild(opt);
+    });
+
+    // restore previous selection if it still exists in the refreshed list
+    if (current && sorted.some(v => v.name === current)) sel.value = current;
+    else sel.value = '';
+  }
+
+  function getSelectedVoice() {
+    const name = getVoiceName();
+    if (!name) return null;
+    return voices.find(v => v.name === name) || null;
+  }
 
   function speak(text) {
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1.0;
+      const v = getSelectedVoice();
+      if (v) u.voice = v;
       speechSynthesis.speak(u);
     } catch { /* unsupported browser — silent */ }
   }
@@ -242,15 +289,37 @@
 
   /* ── Wire up controls ── */
   document.addEventListener('DOMContentLoaded', () => {
-    const setInput = document.getElementById('timer-set');
-    const soundSel = document.getElementById('timer-sound');
+    const setInput  = document.getElementById('timer-set');
+    const soundSel  = document.getElementById('timer-sound');
+    const voiceSel  = document.getElementById('timer-voice');
+    const voiceRow  = document.getElementById('timer-voice-row');
 
     if (setInput) setInput.value = fmt(duration);
+
+    function syncVoiceRowVisibility() {
+      if (voiceRow) voiceRow.style.display = (soundSel?.value === 'voice') ? 'flex' : 'none';
+    }
+
     if (soundSel) {
       soundSel.value = getSoundMode();
+      syncVoiceRowVisibility();
       soundSel.addEventListener('change', () => {
         localStorage.setItem(SOUND_KEY, soundSel.value);
+        syncVoiceRowVisibility();
       });
+    }
+
+    if (voiceSel) {
+      voiceSel.addEventListener('change', () => {
+        localStorage.setItem(VOICE_KEY, voiceSel.value);
+      });
+    }
+
+    // Populate voices now (some browsers have them immediately) and again
+    // once the async 'voiceschanged' event fires (Chrome typically needs this).
+    refreshVoices();
+    if ('speechSynthesis' in window) {
+      speechSynthesis.onvoiceschanged = refreshVoices;
     }
 
     // Apply = set a custom duration AND start fresh from it.
