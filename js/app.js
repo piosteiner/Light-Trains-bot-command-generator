@@ -781,15 +781,15 @@ function buildMergedVisualHTML() {
 
 /* Mid-train starting-location announcements (expansions 2+) */
 function buildMshRaw(exp) {
-  const { map, aeth, cmsg } = buildParts(exp);
+  const { world, map, aeth, cmsg } = buildParts(exp);
   const cm = cmsg ? ` ${cmsg}` : '';
-  return `.msh "${map} - **${aeth}** will be the starting location for the **${EXP_LABELS[exp]}** expansion.${cm}" ${EXP_NUMS[exp]}`;
+  return `.msh "[${world}] ${map} - **${aeth}** will be the starting location for the **${EXP_LABELS[exp]}** expansion.${cm}" ${EXP_NUMS[exp]}`;
 }
 
 function buildMshVisual(exp) {
-  const { map, aeth, cmsg } = buildParts(exp);
+  const { world, map, aeth, cmsg } = buildParts(exp);
   const cm = cmsg ? ` ${escHtml(cmsg)}` : '';
-  return `.msh "${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> will be the starting location for the <span class="pv-bold">${escHtml(EXP_LABELS[exp])}</span> expansion.${cm}" ${EXP_NUMS[exp]}`;
+  return `.msh "[${escHtml(world)}] ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> will be the starting location for the <span class="pv-bold">${escHtml(EXP_LABELS[exp])}</span> expansion.${cm}" ${EXP_NUMS[exp]}`;
 }
 
 function buildMergedCwl1Raw() {
