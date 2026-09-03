@@ -792,6 +792,19 @@ function buildMshVisual(exp) {
   return `.msh "[${escHtml(world)}] ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> will be the starting location for the <span class="pv-bold">${escHtml(EXP_LABELS[exp])}</span> expansion.${cm}" ${EXP_NUMS[exp]}`;
 }
 
+/* "Train will shortly arrive in..." — a second heads-up message per
+   mid-train expansion, meant to be copied right after the starting-location
+   message above once the train is actually about to reach that leg. */
+function buildMshArriveRaw(exp) {
+  const { world, map, aeth } = buildParts(exp);
+  return `.msh "Train will shortly arrive in [${world}] ${map} - **${aeth}** for the **${EXP_LABELS[exp]}** expansion." ${EXP_NUMS[exp]}`;
+}
+
+function buildMshArriveVisual(exp) {
+  const { world, map, aeth } = buildParts(exp);
+  return `.msh "Train will shortly arrive in [${escHtml(world)}] ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> for the <span class="pv-bold">${escHtml(EXP_LABELS[exp])}</span> expansion." ${EXP_NUMS[exp]}`;
+}
+
 function buildMergedCwl1Raw() {
   const { world, map, aeth, expLabels } = buildMergedParts();
   const breakNote = selectedExps.length === 2
@@ -940,6 +953,11 @@ function copyMsh(exp, el) {
   copyToClipboard(buildMshRaw(exp), el);
 }
 
+function copyMshArrive(exp, el) {
+  if (!validateFields(exp)) { flashInvalid(el); return; }
+  copyToClipboard(buildMshArriveRaw(exp), el);
+}
+
 function copyMergedCwl1(el) {
   if (!validateAllExps()) { flashInvalid(el); return; }
   copyToClipboard(buildMergedCwl1Raw(), el);
@@ -1031,6 +1049,12 @@ function renderMergedPreview(area) {
     </div>
     <div class="preview-visual" id="pvm-${exp}" onclick="copyMsh('${exp}', this)">
       <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMshVisual(exp)}
+    </div>
+    <div class="preview-exp-label" style="margin-top:.6rem">
+      <span class="exp-icon">${EXP_ICONS[exp]}</span> ${EXP_LABELS[exp]} — mid-train starting announcement
+    </div>
+    <div class="preview-visual" id="pvma-${exp}" onclick="copyMshArrive('${exp}', this)">
+      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMshArriveVisual(exp)}
     </div>
   `).join('');
 
