@@ -339,7 +339,7 @@ document.querySelectorAll('#exp-pills .pill').forEach(p => {
     p.classList.toggle('active', selectedExps.includes(exp));
 
     if (!expData[exp]) {
-      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false, customMsg: '', startInMin: '5', maxTargets: '12', instance: false };
+      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false, customMsg: '', startInMin: '5', maxTargets: '12', instance: false, instanceNum: '1' };
     }
 
     renderTrainOptions();
@@ -385,7 +385,11 @@ function renderExpSections() {
         <input type="checkbox" id="instance-${exp}"
                ${d.instance ? 'checked' : ''}
                onchange="setField('${exp}', 'instance', this.checked)" />
-        Instance 1
+        Instance
+        <input type="number" id="instancenum-${exp}" value="${d.instanceNum}"
+               min="1" max="99" style="width:48px; margin-left:4px"
+               onclick="event.stopPropagation()"
+               oninput="setField('${exp}', 'instanceNum', this.value); this.value = expData['${exp}'].instanceNum;" />
       </label>
 
       ${isPreShb(exp) ? `
@@ -407,7 +411,7 @@ function renderExpSections() {
                oninput="setField('${exp}', 'targets', this.value); this.value = expData['${exp}'].targets;" />
         <span class="targets-sep">/</span>
         <input type="number" id="maxtgt-${exp}" value="${d.maxTargets}"
-               min="1" max="99" style="width:52px"
+               min="1" max="99"
                oninput="setMaxTargets('${exp}', this.value)" />
       </div>
       ${noBreaks ? '' : `
@@ -420,7 +424,7 @@ function renderExpSections() {
 
       <div class="sub-label">Scouts</div>
       <input type="text" id="scouts-${exp}" value="${escAttr(d.scouts)}"
-             placeholder="e.g. Presea Brunel, Rosemarie Herz, Ceri Elfari"
+             placeholder="leave blank for &quot;myself&quot;"
              oninput="setField('${exp}', 'scouts', this.value)" />
 
       ${(multi && !noBreaks) ? `
@@ -541,6 +545,9 @@ function setField(exp, key, value) {
   if (key === 'startInMin') {
     value = clampMinutes(value);
   }
+  if (key === 'instanceNum') {
+    value = clampInstanceNum(value);
+  }
   expData[exp][key] = value;
   updateProgPreviews();
   clearInvalidIfFilled(exp, key, value);
@@ -600,6 +607,14 @@ function clampTargets(value, max) {
   if (isNaN(n)) return '';
   if (n < 0) n = 0;
   if (n > ceiling) n = ceiling;
+  return String(n);
+}
+
+/* Clamp the instance number to 1–99; non-numeric falls back to 1. */
+function clampInstanceNum(value) {
+  let n = parseInt(value, 10);
+  if (isNaN(n) || n < 1) n = 1;
+  if (n > 99) n = 99;
   return String(n);
 }
 
@@ -669,25 +684,26 @@ function buildParts(exp) {
   const aeth   = getComboVal(`combo-aeth-${exp}`) || d.aeth || 'AETHERYTE';
   const tgt    = d.targets || 'XX';
   const maxTgt = d.maxTargets || 12;
-  const scouts = d.scouts  || 'NAMES';
+  const scouts = (d.scouts || '').trim() || 'myself';
   const cmsg   = (d.customMsg || '').trim();
   const instance = !!d.instance;
+  const instanceNum = d.instanceNum || '1';
   const prog   = (d.progEnabled && selectedExps.length > 1)
     ? buildProgText(exp)
     : null;
   const reward = (d.showRewards) ? buildRewardLine(exp, d.targets) : null;
   const startInMin = d.startInMin;
-  return { world, speedStr, map, aeth, tgt, maxTgt, scouts, cmsg, instance, prog, reward, startInMin, expNum: EXP_NUMS[exp] };
+  return { world, speedStr, map, aeth, tgt, maxTgt, scouts, cmsg, instance, instanceNum, prog, reward, startInMin, expNum: EXP_NUMS[exp] };
 }
 
 /* ── Raw command (real newlines, Discord markdown) ──────────── */
 function buildRawCmd(exp) {
-  const { world, speedStr, map, aeth, tgt, maxTgt, scouts, cmsg, instance, prog, reward, startInMin, expNum } = buildParts(exp);
+  const { world, speedStr, map, aeth, tgt, maxTgt, scouts, cmsg, instance, instanceNum, prog, reward, startInMin, expNum } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
   const progLine   = prog   ? `\n*${prog}*`  : '';
   const rewardLine = reward ? `\n${reward}`  : '';
   const cmsgLine   = cmsg   ? `\n${cmsg}`    : '';
-  const instTag    = instance ? ' **(Instance 1)**' : '';
+  const instTag    = instance ? ` **(Instance ${instanceNum})**` : '';
 
   if (isPreShb(exp)) {
     const ts = buildRelativeTimestamp(startInMin);
@@ -698,9 +714,9 @@ function buildRawCmd(exp) {
 
 /* ── Visual HTML (rendered in the preview box) ──────────────── */
 function buildVisualHTML(exp) {
-  const { world, speedStr, map, aeth, tgt, maxTgt, scouts, cmsg, instance, prog, reward, startInMin, expNum } = buildParts(exp);
+  const { world, speedStr, map, aeth, tgt, maxTgt, scouts, cmsg, instance, instanceNum, prog, reward, startInMin, expNum } = buildParts(exp);
   const expLabel   = EXP_LABELS[exp];
-  const instTag    = instance ? ' <span class="pv-bold">(Instance 1)</span>' : '';
+  const instTag    = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
   const progLine   = prog
     ? `\n<span class="pv-italic">${escHtml(prog)}</span>`
     : '';
@@ -729,18 +745,18 @@ function buildVisualHTML(exp) {
 
 /* ── CWL1 join-message (separate copyable text) ─────────────── */
 function buildCwl1Raw(exp) {
-  const { world, map, aeth, instance, startInMin } = buildParts(exp);
+  const { world, map, aeth, instance, instanceNum, startInMin } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
   const timing = isPreShb(exp) ? `${parseInt(startInMin, 10) || 5}min` : '10mins';
-  const instTag = instance ? ' **(Instance 1)**' : '';
+  const instTag = instance ? ` **(Instance ${instanceNum})**` : '';
   return `/cwl1 Running a ${expLabel} A-Rank Hunt Train on ${world} in ${timing}. Join at ${map} - ${aeth}${instTag} if you want to hunt together <3`;
 }
 
 function buildCwl1Visual(exp) {
-  const { world, map, aeth, instance, startInMin } = buildParts(exp);
+  const { world, map, aeth, instance, instanceNum, startInMin } = buildParts(exp);
   const expLabel = EXP_LABELS[exp];
   const timing = isPreShb(exp) ? `${parseInt(startInMin, 10) || 5}min` : '10mins';
-  const instTag = instance ? ' <span class="pv-bold">(Instance 1)</span>' : '';
+  const instTag = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
   return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabel)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in ${timing}. Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} if you want to hunt together &lt;3`;
 }
 
@@ -764,7 +780,7 @@ function buildScoutsVisual(exp) {
 function combineScouts() {
   const entries = selectedExps.map(exp => ({
     exp,
-    scouts: (expData[exp]?.scouts || '').trim() || 'NAMES',
+    scouts: (expData[exp]?.scouts || '').trim() || 'myself',
   }));
   const allSame = entries.every(e => e.scouts === entries[0].scouts);
   if (allSame) return entries[0].scouts;
@@ -793,7 +809,7 @@ function buildMergedRewardLine() {
 
 function buildMergedParts() {
   const first = selectedExps[0];
-  const { world, speedStr, map, aeth, cmsg, instance } = buildParts(first);
+  const { world, speedStr, map, aeth, cmsg, instance, instanceNum } = buildParts(first);
   const expLabels = selectedExps.map(e => EXP_LABELS[e]).join(' & ');
   const targets   = selectedExps
     .map(e => `${expData[e]?.targets || 'XX'}/${expData[e]?.maxTargets || 12}`)
@@ -801,24 +817,24 @@ function buildMergedParts() {
   const scouts    = combineScouts();
   const reward    = buildMergedRewardLine();
   const prog      = noBreaksProg ? buildProgText(first) : null;
-  return { world, speedStr, map, aeth, cmsg, instance, expLabels, targets, scouts, reward, prog, expNum: EXP_NUMS[first] };
+  return { world, speedStr, map, aeth, cmsg, instance, instanceNum, expLabels, targets, scouts, reward, prog, expNum: EXP_NUMS[first] };
 }
 
 function buildMergedRawCmd() {
-  const { world, speedStr, map, aeth, cmsg, instance, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
+  const { world, speedStr, map, aeth, cmsg, instance, instanceNum, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
   const cmsgLine   = cmsg   ? `\n${cmsg}`   : '';
   const rewardLine = reward ? `\n${reward}` : '';
   const progLine   = prog   ? `\n*${prog}*` : '';
-  const instTag    = instance ? ' **(Instance 1)**' : '';
+  const instTag    = instance ? ` **(Instance ${instanceNum})**` : '';
   return `.sh ${world} "${map} - **${aeth}**${instTag}${cmsgLine}\n:book: Expansions: **${expLabels}**\n:dart: Targets : ${targets}${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
 function buildMergedVisualHTML() {
-  const { world, speedStr, map, aeth, cmsg, instance, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
+  const { world, speedStr, map, aeth, cmsg, instance, instanceNum, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
   const cmsgLine   = cmsg   ? `\n${escHtml(cmsg)}`   : '';
   const rewardLine = reward ? `\n${escHtml(reward)}` : '';
   const progLine   = prog   ? `\n<span class="pv-italic">${escHtml(prog)}</span>` : '';
-  const instTag    = instance ? ' <span class="pv-bold">(Instance 1)</span>' : '';
+  const instTag    = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
   return `.sh ${escHtml(world)} "\n`
     + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag}${cmsgLine}\n`
     + `:book: Expansions: <span class="pv-bold">${escHtml(expLabels)}</span>\n`
@@ -830,16 +846,16 @@ function buildMergedVisualHTML() {
 
 /* Mid-train starting-location announcements (expansions 2+) */
 function buildMshRaw(exp) {
-  const { world, map, aeth, cmsg, instance } = buildParts(exp);
+  const { world, map, aeth, cmsg, instance, instanceNum } = buildParts(exp);
   const cm = cmsg ? ` ${cmsg}` : '';
-  const instTag = instance ? ' **(Instance 1)**' : '';
+  const instTag = instance ? ` **(Instance ${instanceNum})**` : '';
   return `.msh "[${world}] ${map} - **${aeth}**${instTag} will be the starting location for the **${EXP_LABELS[exp]}** expansion.${cm}" ${EXP_NUMS[exp]}`;
 }
 
 function buildMshVisual(exp) {
-  const { world, map, aeth, cmsg, instance } = buildParts(exp);
+  const { world, map, aeth, cmsg, instance, instanceNum } = buildParts(exp);
   const cm = cmsg ? ` ${escHtml(cmsg)}` : '';
-  const instTag = instance ? ' <span class="pv-bold">(Instance 1)</span>' : '';
+  const instTag = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
   return `.msh "[${escHtml(world)}] ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} will be the starting location for the <span class="pv-bold">${escHtml(EXP_LABELS[exp])}</span> expansion.${cm}" ${EXP_NUMS[exp]}`;
 }
 
@@ -847,14 +863,14 @@ function buildMshVisual(exp) {
    mid-train expansion, meant to be copied right after the starting-location
    message above once the train is actually about to reach that leg. */
 function buildMshArriveRaw(exp) {
-  const { world, map, aeth, instance } = buildParts(exp);
-  const instTag = instance ? ' **(Instance 1)**' : '';
+  const { world, map, aeth, instance, instanceNum } = buildParts(exp);
+  const instTag = instance ? ` **(Instance ${instanceNum})**` : '';
   return `.msh "Train will shortly arrive in [${world}] ${map} - **${aeth}**${instTag} for the **${EXP_LABELS[exp]}** expansion." ${EXP_NUMS[exp]}`;
 }
 
 function buildMshArriveVisual(exp) {
-  const { world, map, aeth, instance } = buildParts(exp);
-  const instTag = instance ? ' <span class="pv-bold">(Instance 1)</span>' : '';
+  const { world, map, aeth, instance, instanceNum } = buildParts(exp);
+  const instTag = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
   return `.msh "Train will shortly arrive in [${escHtml(world)}] ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} for the <span class="pv-bold">${escHtml(EXP_LABELS[exp])}</span> expansion." ${EXP_NUMS[exp]}`;
 }
 
@@ -927,10 +943,8 @@ function validateFields(exp) {
   tgtInput?.classList.toggle('field-invalid', !tgtOk);
   if (!tgtOk) valid = false;
 
-  const scoutsInput = document.getElementById(`scouts-${exp}`);
-  const scoutsOk = !!val(`scouts-${exp}`);
-  scoutsInput?.classList.toggle('field-invalid', !scoutsOk);
-  if (!scoutsOk) valid = false;
+  // Scouts is no longer required — a blank field defaults to "myself".
+  document.getElementById(`scouts-${exp}`)?.classList.remove('field-invalid');
 
   if (isPreShb(exp)) {
     const startInput = document.getElementById(`starttime-${exp}`);
@@ -970,12 +984,6 @@ function copyCwl1(exp, el) {
 }
 
 function copyScouts(exp, el) {
-  const scoutsOk = !!val(`scouts-${exp}`);
-  if (!scoutsOk) {
-    document.getElementById(`scouts-${exp}`)?.classList.add('field-invalid');
-    flashInvalid(el);
-    return;
-  }
   const raw = buildScoutsRaw(exp);
   copyToClipboard(raw, el);
 }
