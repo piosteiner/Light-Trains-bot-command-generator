@@ -1,3 +1,10 @@
+/* Inter and JetBrains Mono, served from this site (SIL Open Font License, see fonts/). */
+@font-face { font-family: 'Inter'; font-weight: 400; font-style: normal; font-display: swap; src: url('../fonts/inter-400.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 500; font-style: normal; font-display: swap; src: url('../fonts/inter-500.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; font-style: normal; font-display: swap; src: url('../fonts/inter-600.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 400; font-style: normal; font-display: swap; src: url('../fonts/jetbrains-mono-400.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 500; font-style: normal; font-display: swap; src: url('../fonts/jetbrains-mono-500.woff2') format('woff2'); }
+
 /* ── Reset & base ─────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -700,3 +707,7 @@ input::placeholder { color: var(--text-dim); }
   #timer-panel { bottom: 10px; right: 10px; width: 170px; }
   #timer-display { font-size: 28px; }
 }
+/* Footer with the privacy link */
+.site-foot { text-align: center; padding: 24px 16px 40px; font-size: 12px; }
+.site-foot a { color: var(--text-dim); }
+.site-foot a:hover { color: var(--text); }
