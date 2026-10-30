@@ -160,7 +160,7 @@ Discord decides on its own servers whether a link becomes a GIF, and it goes by 
 
 | Label | Meaning |
 |---|---|
-| ✅ Shows as a GIF | Matches a format that worked |
+| ✅ Shows as a GIF | Matches a format that worked (`tested: false` → "probably") |
 | ⚠️ Won't show as a GIF | Matches a format that failed (`tested: false` → "probably", predicted but not yet tried) |
 | ❓ Untested link format | Matches nothing yet — try it once in Discord and add the result as a rule |
 
@@ -172,14 +172,20 @@ Current findings:
 | `media*.giphy.com/media/…/giphy.gif` | Works |
 | `c.tenor.com/<id>/tenor.gif` | Works |
 | `media*.tenor.com/…` | Fails — **Use the working link** rewrites it to `c.tenor.com` |
-| `tenor.com/view/…` (any language prefix) | Fails — the page points Discord at its `media1.tenor.com` file |
-| `tenor.com/<code>.gif` short link | Predicted to fail — it redirects to a `tenor.com/view` page |
+| `tenor.com/view/…` | Works — the format Discord's own GIF picker posts |
+| `tenor.com/en-GB/view/…` (any language part) | Fails — the tool **removes the language part automatically** (`normalizeGifUrl`) |
+| `tenor.com/<code>.gif` short link | Predicted to work — it redirects to a plain `tenor.com/view` page |
 
-**For Tenor:** on the Tenor page right-click the GIF → *Copy image address*, paste that, and click **Use the working link**. A saved GIF keeps its name when its link is fixed this way.
+Tenor pages give Discord identical information whether or not they have a language part, and all of it points to a failing `media1.tenor.com` file. Confirmed by testing the same GIF both ways: the plain `tenor.com/view/…` link works, the `/en-GB/` one doesn't. Most likely Discord recognises that exact format itself (Tenor is its built-in GIF provider) and doesn't recognise the language variant.
+
+So every GIF link goes through `normalizeGifUrl` first: whatever sits between `tenor.com/` and `/view/` (`en-GB`, `pt-BR`, …) is removed, wherever the link comes from: pasted, a saved GIF, or a train link. The hint says what was removed.
+
+**For Tenor:** paste the page link (any language version), or right-click the GIF → *Copy image address* and click **Use the working link** to get the `c.tenor.com` link. A saved GIF keeps its name when its link is fixed this way.
 
 Previews need no third-party service: Giphy page links are previewed from their GIF id, Tenor page links with Tenor's own embedded player, and file links directly. Tenor short links get no preview, since Tenor doesn't let other sites follow them.
 
 A matching ✅ format plus a preview that loads (so the GIF exists) is as close to certain as it gets; Discord can still change its behaviour, so add a rule whenever a result surprises you.
+
 ---
 
 ## Field validation

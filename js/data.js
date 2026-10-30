@@ -168,20 +168,32 @@ const GIF_LINK_RULES = [
     examples: ['https://media1.tenor.com/m/vxq76cN5xyMAAAAC/pixelplace.gif'],
   },
   {
-    // The page points Discord at its media1.tenor.com file (see above).
+    // The format Discord's own GIF picker posts, which Discord seems to
+    // recognise itself: Tenor's page metadata is the same for working and
+    // failing pages, so it isn't what makes the difference.
     name: 'Tenor page',
-    pattern: /^https?:\/\/(www\.)?tenor\.com\/([a-z]{2}(-[a-z]{2})?\/)?view\//i,
+    pattern: /^https?:\/\/(www\.)?tenor\.com\/view\//i,
+    verdict: 'works', tested: true,
+    examples: [
+      'https://tenor.com/view/dungeon-meshi-delicious-in-dungeon-laios-marcille-chilchuck-gif-14327501401196912076',
+      'https://tenor.com/view/pixelplace-gif-24586548',
+    ],
+  },
+  {
+    // Not recognised as Tenor because of the language part, so Discord reads
+    // the page like any other and gets no GIF from it. The tool removes the
+    // part automatically (normalizeGifUrl), so this only documents the finding.
+    name: 'Tenor page with a language part',
+    pattern: /^https?:\/\/(www\.)?tenor\.com\/([^/?#]+\/)+view\//i,
     verdict: 'fails', tested: true,
-    note: 'On the Tenor page, right-click the GIF → "Copy image address" and paste that here; '
-      + 'it gets turned into the c.tenor.com link, which works.',
+    note: 'Without the language part (e.g. /en-GB/) it is a plain Tenor page link, which works.',
     examples: ['https://tenor.com/en-GB/view/pixelplace-gif-24586548'],
   },
   {
     name: 'Tenor short link',
     pattern: /^https?:\/\/(www\.)?tenor\.com\/[A-Za-z0-9]+\.gif$/i,
-    verdict: 'fails', tested: false,
-    note: 'It opens a Tenor page. There, right-click the GIF → "Copy image address" and paste that here; '
-      + 'it gets turned into the c.tenor.com link, which works.',
+    verdict: 'works', tested: false,
+    note: 'It redirects to a plain Tenor page link, which works.',
     examples: ['https://tenor.com/reygSVZAanM.gif'],
   },
 ];

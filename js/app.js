@@ -70,8 +70,13 @@ function loadSavedGifs() {
   try {
     const raw = JSON.parse(localStorage.getItem(GIF_STORAGE_KEY));
     if (!Array.isArray(raw)) return [];
-    // migrate old plain-string format
-    return raw.map(e => typeof e === 'string' ? { url: e, label: 'GIF' } : e);
+    // migrate old plain-string format, and fix links saved before
+    // normalizeGifUrl existed (dropping any that then duplicate another)
+    const seen = new Set();
+    return raw
+      .map(e => typeof e === 'string' ? { url: e, label: 'GIF' } : e)
+      .map(e => ({ ...e, url: normalizeGifUrl(e.url) }))
+      .filter(e => !seen.has(e.url) && seen.add(e.url));
   } catch { return []; }
 }
 
@@ -252,6 +257,19 @@ function tenorWorkingUrl(fileUrl) {
   return m ? `https://c.tenor.com/${m[1]}/tenor.gif` : null;
 }
 
+/* tenor.com/en-GB/view/… → tenor.com/view/…: Discord only recognises the plain
+   page link, so whatever sits between tenor.com/ and /view/ is dropped. */
+function tenorPlainPageUrl(url) {
+  const m = url.match(/^https?:\/\/(?:www\.)?tenor\.com\/(?:[^/?#]+\/)+(view\/.*)$/i);
+  return m ? `https://tenor.com/${m[1]}` : null;
+}
+
+/* Every GIF link goes through this before use, so a fixable link is
+   never put into a command. */
+function normalizeGifUrl(url) {
+  return tenorPlainPageUrl(url) || url;
+}
+
 /* Giphy page links end in the GIF's id, and its file lives at a fixed address. */
 function giphyFileUrl(pageUrl) {
   const m = pageUrl.match(/giphy\.com\/gifs\/(?:[^/?#]*-)?([A-Za-z0-9]+)\/?([?#]|$)/i);
@@ -274,7 +292,9 @@ function showGifVerdict(hint, rule) {
       + 'Try it once, then add the result to <code>GIF_LINK_RULES</code> in data.js.';
   } else if (rule.verdict === 'works') {
     icon = 'ti-check';
-    text = `Shows as a GIF in Discord <span class="gif-rule">(${rule.name})</span>.`;
+    text = rule.tested
+      ? `Shows as a GIF in Discord <span class="gif-rule">(${rule.name})</span>.`
+      : `Probably shows as a GIF in Discord <span class="gif-rule">(${rule.name}, not tested yet)</span>. ${rule.note}`;
   } else {
     icon = 'ti-alert-triangle';
     text = rule.tested
@@ -313,7 +333,8 @@ function offerGifFix(hint, fixedUrl) {
 }
 
 function updateGifPreview() {
-  const url    = val('gif-url');
+  const typed  = val('gif-url');
+  const url    = normalizeGifUrl(typed);
   const box    = document.getElementById('gif-preview');
   const img    = box.querySelector('img');
   const player = box.querySelector('iframe');
@@ -330,6 +351,13 @@ function updateGifPreview() {
   if (!url) return;
 
   showGifVerdict(hint, matchGifRule(url));
+  if (url !== typed) {
+    document.getElementById('gif-url').value = url;
+    syncGifPicks();
+    const removed = typed.match(/tenor\.com(\/.*?)\/view\//i)[1];
+    hint.querySelector('span').insertAdjacentHTML('afterbegin',
+      `Removed <code>${escHtml(removed)}</code> from the link — Discord only shows the plain Tenor link as a GIF. `);
+  }
   offerGifFix(hint, tenorWorkingUrl(url));
 
   const embed = tenorEmbedUrl(url);
