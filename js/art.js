@@ -7,9 +7,16 @@
 /* Official artwork (FINAL FANTASY XIV © SQUARE ENIX, used under the FFXIV
    Materials Usage License; the notice is in the page footer). An expansion
    listed here shows its image instead of the line drawing below. Put the
-   images in img/art/ as ~720px-wide WebP; they're shown faintly. */
+   images in img/art/ as ~720px-wide WebP; they're shown faintly.
+   Images fill a square in the section's top-right corner. For a non-square
+   image, `focus` (a CSS object-position) picks the part that fills it. */
 const EXP_ART_IMAGES = {
-  HW: 'img/art/HW.webp',
+  ARR: { src: 'img/art/ARR.webp', focus: '50% 50%' }, // the three heroes
+  HW: { src: 'img/art/HW.webp' },
+  SB: { src: 'img/art/SB.webp', focus: '55% 50%' },   // Kugane's tower and the samurai
+  ShB: { src: 'img/art/ShB.webp', focus: '63% 50%' }, // the Crystal Tower and the knight
+  EW: { src: 'img/art/EW.webp' },   // mirrored in the file, so the face sits in the visible corner
+  DT: { src: 'img/art/DT.webp', focus: '30% 50%' },   // the two faces
 };
 
 const EXP_ART = {

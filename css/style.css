@@ -173,18 +173,18 @@ main {
           mask-image: linear-gradient(200deg, #000 35%, transparent 85%);
 }
 
-/* Official artwork, fading out from the top-right corner before reaching its
-   own edges. Luminosity blending keeps the painting's light and shade but
-   takes the colour from the section tint, so a mostly white painting reads
-   as artwork instead of grey haze on the dark background. */
+/* Official artwork in its own colours, fading out from the top-right corner
+   before reaching its own edges. (Blend modes can't tint it: .exp-art is
+   its own stacking context, and the section background behind it is
+   mostly transparent.) */
 .exp-art img {
   position: absolute;
   top: 0;
   right: 0;
   width: min(440px, 75%);
-  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;   /* non-square art: EXP_ART_IMAGES' focus picks the part shown */
   opacity: 0.3;
-  mix-blend-mode: luminosity;
   -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 25%, transparent 92%);
           mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 25%, transparent 92%);
 }

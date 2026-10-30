@@ -226,9 +226,9 @@ The form itself is restored from the active train (and the `#` link). Use **Clea
 
 ## Expansion art
 
-Each expansion's form section and command preview carry faint background art, tinted in the expansion's colour (`--exp-color-*` in `style.css`).
+Each expansion's form section and command preview carry faint background art, and are tinted in the expansion's colour (`--exp-color-*` in `style.css`).
 
-- **Official artwork**: list the image in `EXP_ART_IMAGES` in `js/art.js` and put the file in `img/art/` — a ~720px-wide WebP is plenty, since it's shown faint (the Heavensward image is 61 KB). It's blended in luminosity mode, so it takes the section's colour, and fades out from the top-right corner.
+- **Official artwork**: list the image in `EXP_ART_IMAGES` in `js/art.js` and put the file in `img/art/` — a ~720px-wide WebP is plenty, since it's shown faint (each is 30–90 KB). Images fill a square; for a wide or tall one, `focus` (a CSS `object-position` like `'30% 50%'`) picks the part that shows, e.g. the faces in the Dawntrail art. Crop off any watermark from where you found the image. It's shown in its own colours at 30% strength, fading out from the top-right corner.
 - **Expansions without an image** show an original line drawing from `EXP_ART` in the same file.
 
 Official art is FINAL FANTASY XIV © SQUARE ENIX, used under the FINAL FANTASY XIV Materials Usage License (published by Square Enix on the Lodestone), which allows non-commercial fan use with a copyright notice. That notice is in the page footer; keep it there, and keep the tool free.

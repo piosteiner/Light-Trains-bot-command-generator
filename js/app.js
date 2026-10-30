@@ -428,7 +428,9 @@ document.querySelectorAll('#exp-pills .pill').forEach(p => {
 function expArtHTML(exp) {
   const image = EXP_ART_IMAGES[exp];
   return `<div class="exp-art" aria-hidden="true">${
-    image ? `<img src="${image}" alt="" />` : (EXP_ART[exp] || '')
+    image
+      ? `<img src="${image.src}" alt=""${image.focus ? ` style="object-position:${image.focus}"` : ''} />`
+      : (EXP_ART[exp] || '')
   }</div>`;
 }
 
