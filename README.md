@@ -27,11 +27,55 @@ Nothing here needs a server. `data.js` is the file you edit to add new patch con
 
 ## Basic workflow
 
-1. Pick a **World** and **Speed** (searchable dropdown + preset pills, or type a custom speed label).
-2. Optionally attach a **GIF** — pick from your saved library or paste a URL.
-3. Tick one or more **Expansions**. Each ticked expansion gets its own section below with Map, Aetheryte, Targets, Scouts, etc.
-4. Click any generated message box to copy it — every box shows a "Click to copy" hint and flashes green on success.
-5. Copying the *main* command (`.sh` or `.msh`) automatically starts the sticky countdown timer.
+1. *(Optional)* Use the **Trains** tabs at the top to prepare several trains at once — see [Trains & links](#trains--links).
+2. Pick a **World** and **Speed** (searchable dropdown + preset pills, or type a custom speed label).
+3. Optionally attach a **GIF** — pick from your saved library or paste a URL.
+4. Tick one or more **Expansions**. Each ticked expansion gets its own section below with Map, Aetheryte, Targets, Scouts, etc.
+5. Click any generated message box to copy it — every box shows a "Click to copy" hint and flashes green on success.
+6. Copying the *main* command (`.sh` or `.msh`) automatically starts the sticky countdown timer.
+
+---
+
+## Trains & links
+
+### A link per train
+
+Every change to the form is mirrored into the page address after the `#`, e.g.
+
+```
+index.html#w=Phoenix&sp=fast&e=ShB.DT&ShB.m=Lakeland&ShB.a=Fort+Jobb&ShB.t=8&ShB.sc=Ceri&DT.m=Urqopacha&DT.a=Wachunpelo&DT.t=12
+```
+
+So the address bar is always a stable link to exactly the train on screen: bookmark it, or send it to another conductor with **Copy link**. Opening it fills the form back in. A link holds **one** train — the tab you're on.
+
+- The part after `#` is never sent to the server, and the address is updated in place, so typing doesn't flood the browser's Back button.
+- Values left at their default are omitted, so links stay short and a blank form has no `#` at all.
+- Everything from a link goes through the same clamps as typed input (targets ≤ max, minutes 0–180, …); unknown expansions or keys are ignored.
+- ARR/HW/SB start times stay correct: the `<t:…:R>` timestamp is computed when you copy, not stored in the link.
+
+| Key | Meaning |
+|---|---|
+| `w` | World |
+| `sp` / `cs` | Speed (`slow`/`fast`/`custom`; omitted = relaxed) / custom speed label |
+| `gif` | GIF URL |
+| `e` | Selected expansions, dot-separated (`ShB.DT`) |
+| `nb`, `nbp=0`, `nbr` | No breaks; progression message off; consolidated rewards |
+| `<EXP>.m` / `.a` | Map / Aetheryte |
+| `<EXP>.t` / `.max` | Targets / max targets (omitted = 12) |
+| `<EXP>.i` | Instance number (only when max > 12) |
+| `<EXP>.st` | Starts in minutes, ARR/HW/SB only (omitted = 5) |
+| `<EXP>.msg` / `.sc` | Custom message / scouts |
+| `<EXP>.p`, `<EXP>.r` | Progression message on; currency rewards on |
+
+### Several trains at once
+
+The **Trains** card holds one tab per prepared train, labelled `World · ShB > DT`:
+
+- **+** opens a blank train, **Duplicate** opens a copy of the current one (e.g. same setup, other world), **Clear** empties the current one, **✕** closes a tab (asks first if it has entries).
+- Switching tabs swaps the whole form and the address-bar link.
+- All tabs are kept in `localStorage`, so they survive a reload.
+- Opening a train link reuses a tab already holding exactly that train, fills the current tab if it's blank, and otherwise opens a new tab.
+- There's still one countdown timer; its header shows which train it was started for.
 
 ---
 
@@ -77,7 +121,7 @@ The on-screen preview box only re-renders when you edit a field, so it can visua
 
 When 2+ expansions are selected, a **"No breaks"** checkbox appears above the expansion list. Enabling it merges everything into a single announcement instead of separate per-expansion commands:
 
-- **One merged `.sh`/`.msh` command**, using the **first** selected expansion's world/map/aetheryte/command number/custom message as the base.
+- **One merged command**, using the **first** selected expansion's world/map/aetheryte/command number/custom message as the base. If that first expansion is ARR/HW/SB, the merged command, CWLS message and scouts macro use its scheduled format (`.msh` with `<t:…:R>`, "in {X}min", `/msh`); otherwise `.sh`.
 - `:book: Expansions:` line lists all expansion names joined with `&`.
 - `:dart: Targets:` lists each expansion's target count joined with `&` (e.g. `8/12 & 5/12 & 3/12`).
 - **Scouts** are combined: if every expansion has the *same* scout text, it's shown once; if they differ, it reads like `Ceri (ShB), Aphelia (EW) and Gromp (DT)`.
@@ -140,8 +184,10 @@ A sticky panel pinned to the bottom-right of the screen (scrolls with you, alway
 | `hunt-train-gif-library-v2` | Saved GIF pills (`[{url, label}]`) |
 | `hunt-train-timer-sound` | Sound mode: `voice` / `beep` / `mute` |
 | `hunt-train-timer-duration` | Last-used timer duration in seconds, used by Reset |
+| `hunt-train-timer-voice` | Chosen text-to-speech voice |
+| `hunt-train-trains-v1` | Prepared trains: `{ trains: [encoded, …], active }`, each entry in the link format above |
 
-Nothing else is persisted — form field values (world, expansions, map/aetheryte selections, targets, scouts, etc.) reset on page reload by design, since each train's details are one-off.
+The form itself is restored from the active train (and the `#` link). Use **Clear** for a fresh form.
 
 ---
 

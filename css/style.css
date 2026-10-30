@@ -259,6 +259,88 @@ input::placeholder { color: var(--text-dim); }
   color: var(--accent);
 }
 
+/* ── Train tabs ───────────────────────────────────────────── */
+.train-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.train-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 6px 4px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s;
+}
+
+.train-tab:hover { border-color: rgba(255,255,255,0.22); color: var(--text); }
+
+.train-tab.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.train-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 6px;
+}
+
+.train-tab-close,
+.train-tab-add,
+.btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.12s;
+}
+
+.train-tab-close { padding: 2px; font-size: 13px; }
+.train-tab-close:hover { color: #e25c5c; }
+
+.train-tab-add {
+  padding: 4px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.train-tab-add:hover { color: var(--accent); border-color: var(--accent-border); }
+
+.train-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn {
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+.btn:hover { color: var(--accent); border-color: var(--accent-border); }
+.btn i { font-size: 14px; }
+
 /* ── GIF quick-picks ──────────────────────────────────────── */
 .gif-picks {
   display: flex;
@@ -623,6 +705,13 @@ input::placeholder { color: var(--text-dim); }
 }
 
 .timer-head i { color: var(--accent); font-size: 14px; }
+
+#timer-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 #timer-close {
   margin-left: auto;

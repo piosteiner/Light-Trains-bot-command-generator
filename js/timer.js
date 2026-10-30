@@ -1,7 +1,8 @@
 /* js/timer.js — sticky train countdown with sound cues, pause/resume, and overtime count-up.
 
    Public API (called from app.js):
-     window.startTrainTimer(seconds)  — always pass an explicit duration.
+     window.startTrainTimer(seconds, label?)  — always pass an explicit duration;
+                                         label names the train in the panel header.
      window.TIMER_DEFAULT_DURATION    — shared default (10:30) so app.js
                                          doesn't need to hardcode it twice.
 
@@ -187,9 +188,14 @@
 
   /* Start a brand-new countdown at the given duration (seconds).
      Always call with an explicit value — this never reads stale UI state. */
-  window.startTrainTimer = function (seconds) {
+  window.startTrainTimer = function (seconds, label) {
     const panel = document.getElementById('timer-panel');
     if (!panel) return;
+
+    // Name the train this countdown belongs to; a manual restart keeps the last name.
+    if (label !== undefined) {
+      document.getElementById('timer-title').textContent = label || 'Train countdown';
+    }
 
     duration = (typeof seconds === 'number' && seconds > 0) ? seconds : window.TIMER_DEFAULT_DURATION;
     localStorage.setItem(DUR_KEY, String(duration));

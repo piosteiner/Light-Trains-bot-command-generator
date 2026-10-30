@@ -38,8 +38,16 @@ function escAttr(s) {
     .replace(/</g, '&lt;');
 }
 
+/* Fresh per-expansion form values, used when an expansion is first ticked. */
+function newExpData() {
+  return { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false, customMsg: '', startInMin: '5', maxTargets: '12', instance: false, instanceNum: '1' };
+}
+
 /* ── World combobox ─────────────────────────────────────────── */
-makeCombo('combo-world', WORLDS, 'type or select world…', () => update());
+function initWorldCombo(initial = '') {
+  makeCombo('combo-world', WORLDS, 'type or select world…', () => update(), initial);
+}
+initWorldCombo();
 
 /* ── Speed pills ────────────────────────────────────────────── */
 document.querySelectorAll('#speed-pills .pill').forEach(p => {
@@ -339,7 +347,7 @@ document.querySelectorAll('#exp-pills .pill').forEach(p => {
     p.classList.toggle('active', selectedExps.includes(exp));
 
     if (!expData[exp]) {
-      expData[exp] = { mapIdx: 0, aeth: '', targets: '', scouts: '', progEnabled: false, showRewards: false, customMsg: '', startInMin: '5', maxTargets: '12', instance: false, instanceNum: '1' };
+      expData[exp] = newExpData();
     }
 
     renderTrainOptions();
@@ -558,9 +566,7 @@ function setField(exp, key, value) {
    extra instances). Re-clamps the current Targets value against the new
    ceiling and shows/hides the Instance toggle without a full re-render. */
 function setMaxTargets(exp, value) {
-  let n = parseInt(value, 10);
-  if (isNaN(n) || n < 1) n = 1;
-  if (n > 99) n = 99;
+  const n = parseInt(clampMaxTargets(value), 10);
   expData[exp].maxTargets = String(n);
 
   const tgtInput = document.getElementById(`tgt-${exp}`);
@@ -607,6 +613,14 @@ function clampTargets(value, max) {
   if (isNaN(n)) return '';
   if (n < 0) n = 0;
   if (n > ceiling) n = ceiling;
+  return String(n);
+}
+
+/* Clamp the max target count to 1–99; non-numeric falls back to 1. */
+function clampMaxTargets(value) {
+  let n = parseInt(value, 10);
+  if (isNaN(n) || n < 1) n = 1;
+  if (n > 99) n = 99;
   return String(n);
 }
 
@@ -809,7 +823,7 @@ function buildMergedRewardLine() {
 
 function buildMergedParts() {
   const first = selectedExps[0];
-  const { world, speedStr, map, aeth, cmsg, instance, instanceNum } = buildParts(first);
+  const { world, speedStr, map, aeth, cmsg, instance, instanceNum, startInMin } = buildParts(first);
   const expLabels = selectedExps.map(e => EXP_LABELS[e]).join(' & ');
   const targets   = selectedExps
     .map(e => `${expData[e]?.targets || 'XX'}/${expData[e]?.maxTargets || 12}`)
@@ -817,26 +831,34 @@ function buildMergedParts() {
   const scouts    = combineScouts();
   const reward    = buildMergedRewardLine();
   const prog      = noBreaksProg ? buildProgText(first) : null;
-  return { world, speedStr, map, aeth, cmsg, instance, instanceNum, expLabels, targets, scouts, reward, prog, expNum: EXP_NUMS[first] };
+  return { first, world, speedStr, map, aeth, cmsg, instance, instanceNum, startInMin, expLabels, targets, scouts, reward, prog, expNum: EXP_NUMS[first] };
 }
 
+/* A merged train starting on ARR/HW/SB uses that expansion's scheduled
+   .msh format (with a start timestamp), like its single-expansion command. */
 function buildMergedRawCmd() {
-  const { world, speedStr, map, aeth, cmsg, instance, instanceNum, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
+  const { first, world, speedStr, map, aeth, cmsg, instance, instanceNum, startInMin, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
   const cmsgLine   = cmsg   ? `\n${cmsg}`   : '';
   const rewardLine = reward ? `\n${reward}` : '';
   const progLine   = prog   ? `\n*${prog}*` : '';
   const instTag    = instance ? ` **(Instance ${instanceNum})**` : '';
-  return `.sh ${world} "${map} - **${aeth}**${instTag}${cmsgLine}\n:book: Expansions: **${expLabels}**\n:dart: Targets : ${targets}${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
+  const head = isPreShb(first)
+    ? `.msh "On **${world}** at ${map} - **${aeth}**${instTag} in ${buildRelativeTimestamp(startInMin)}`
+    : `.sh ${world} "${map} - **${aeth}**${instTag}`;
+  return `${head}${cmsgLine}\n:book: Expansions: **${expLabels}**\n:dart: Targets : ${targets}${rewardLine}\n:train2: Speed: ${speedStr}\n:eyes: Scouts: *${scouts}*${progLine}\n:person_gesturing_ok:" ${expNum}`;
 }
 
 function buildMergedVisualHTML() {
-  const { world, speedStr, map, aeth, cmsg, instance, instanceNum, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
+  const { first, world, speedStr, map, aeth, cmsg, instance, instanceNum, startInMin, expLabels, targets, scouts, reward, prog, expNum } = buildMergedParts();
   const cmsgLine   = cmsg   ? `\n${escHtml(cmsg)}`   : '';
   const rewardLine = reward ? `\n${escHtml(reward)}` : '';
   const progLine   = prog   ? `\n<span class="pv-italic">${escHtml(prog)}</span>` : '';
   const instTag    = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
-  return `.sh ${escHtml(world)} "\n`
-    + `${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag}${cmsgLine}\n`
+  const head = isPreShb(first)
+    ? `.msh "\nOn <span class="pv-bold">${escHtml(world)}</span> at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} in ${escHtml(buildRelativeTimestamp(startInMin))}`
+    : `.sh ${escHtml(world)} "\n${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag}`;
+  return head
+    + `${cmsgLine}\n`
     + `:book: Expansions: <span class="pv-bold">${escHtml(expLabels)}</span>\n`
     + `:dart: Targets : ${escHtml(targets)}${rewardLine}\n`
     + `:train2: Speed: ${escHtml(speedStr)}\n`
@@ -875,29 +897,35 @@ function buildMshArriveVisual(exp) {
 }
 
 function buildMergedCwl1Raw() {
-  const { world, map, aeth, expLabels } = buildMergedParts();
+  const { first, world, map, aeth, instance, instanceNum, startInMin, expLabels } = buildMergedParts();
+  const timing = isPreShb(first) ? `${parseInt(startInMin, 10) || 5}min` : '10mins';
+  const instTag = instance ? ` **(Instance ${instanceNum})**` : '';
   const breakNote = selectedExps.length === 2
     ? 'There will be no break between the expansions.'
     : 'There will be no breaks between the expansions.';
-  return `/cwl1 Running a ${expLabels} A-Rank Hunt Train on ${world} in 10mins. ${breakNote} Join at ${map} - ${aeth} if you want to hunt together <3`;
+  return `/cwl1 Running a ${expLabels} A-Rank Hunt Train on ${world} in ${timing}. ${breakNote} Join at ${map} - ${aeth}${instTag} if you want to hunt together <3`;
 }
 
 function buildMergedCwl1Visual() {
-  const { world, map, aeth, expLabels } = buildMergedParts();
+  const { first, world, map, aeth, instance, instanceNum, startInMin, expLabels } = buildMergedParts();
+  const timing = isPreShb(first) ? `${parseInt(startInMin, 10) || 5}min` : '10mins';
+  const instTag = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
   const breakNote = selectedExps.length === 2
     ? 'There will be no break between the expansions.'
     : 'There will be no breaks between the expansions.';
-  return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabels)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in 10mins. ${breakNote} Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span> if you want to hunt together &lt;3`;
+  return `/cwl1 Running a <span class="pv-bold">${escHtml(expLabels)}</span> A-Rank Hunt Train on <span class="pv-bold">${escHtml(world)}</span> in ${timing}. ${breakNote} Join at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} if you want to hunt together &lt;3`;
 }
 
 function buildMergedScoutsRaw() {
   const s = combineScouts();
-  return `/sh This train was scouted by ${s}\n/p This train was scouted by ${s}`;
+  const cmd = isPreShb(selectedExps[0]) ? '/msh' : '/sh';
+  return `${cmd} This train was scouted by ${s}\n/p This train was scouted by ${s}`;
 }
 
 function buildMergedScoutsVisual() {
   const s = escHtml(combineScouts());
-  return `/sh This train was scouted by <span class="pv-italic">${s}</span>\n/p This train was scouted by <span class="pv-italic">${s}</span>`;
+  const cmd = isPreShb(selectedExps[0]) ? '/msh' : '/sh';
+  return `${cmd} This train was scouted by <span class="pv-italic">${s}</span>\n/p This train was scouted by <span class="pv-italic">${s}</span>`;
 }
 
 /* ── Train control commands (.start / .end) ─────────────────── */
@@ -965,11 +993,12 @@ function copyCmd(exp, el) {
   const raw = buildRawCmd(exp);
   copyToClipboard(raw, el);
   if (typeof startTrainTimer === 'function') {
+    const label = `${getComboVal('combo-world')} · ${exp}`;
     if (isPreShb(exp)) {
       const mins = parseInt(expData[exp]?.startInMin, 10) || 5;
-      startTrainTimer(mins * 60);
+      startTrainTimer(mins * 60, label);
     } else {
-      startTrainTimer(window.TIMER_DEFAULT_DURATION);
+      startTrainTimer(window.TIMER_DEFAULT_DURATION, label);
     }
   }
 }
@@ -1000,11 +1029,12 @@ function copyMergedCmd(el) {
   copyToClipboard(buildMergedRawCmd(), el);
   if (typeof startTrainTimer === 'function') {
     const first = selectedExps[0];
+    const label = trainLabel(trains[activeTrain]);
     if (isPreShb(first)) {
       const mins = parseInt(expData[first]?.startInMin, 10) || 5;
-      startTrainTimer(mins * 60);
+      startTrainTimer(mins * 60, label);
     } else {
-      startTrainTimer(window.TIMER_DEFAULT_DURATION);
+      startTrainTimer(window.TIMER_DEFAULT_DURATION, label);
     }
   }
 }
@@ -1054,6 +1084,7 @@ function copyToClipboard(text, el) {
 /* ── Render preview area ────────────────────────────────────── */
 function update() {
   updateProgPreviews();
+  syncTrainState();
 
   const area = document.getElementById('preview-area');
 
@@ -1163,5 +1194,209 @@ function renderMergedPreview(area) {
   `;
 }
 
+/* ── Train state: shareable link + tabs ─────────────────────── */
+/* One train = the whole form, encoded as URL parameters, e.g.
+   w=Phoenix&e=ShB.DT&ShB.m=Lakeland&ShB.a=Fort+Jobb&ShB.t=8
+   Default values are left out, so a blank train encodes to ''.
+   The page's #hash always mirrors the active tab; all tabs are kept
+   in localStorage so prepared trains survive a reload. */
+const TRAINS_STORAGE_KEY = 'hunt-train-trains-v1';
+let trains      = [''];   // encoded state, one entry per tab
+let activeTrain = 0;
+
+function serializeTrain() {
+  const p = new URLSearchParams();
+  const set = (key, value) => { if (value) p.set(key, value); };
+
+  set('w', getComboVal('combo-world'));
+  if (selectedSpeed !== 'relaxed') p.set('sp', selectedSpeed);
+  if (selectedSpeed === 'custom') set('cs', val('speed-custom'));
+  set('gif', val('gif-url'));
+  set('e', selectedExps.join('.'));
+  if (noBreaks) {
+    p.set('nb', '1');
+    if (!noBreaksProg) p.set('nbp', '0');
+    if (noBreaksRewards) p.set('nbr', '1');
+  }
+
+  selectedExps.forEach(exp => {
+    const d = expData[exp];
+    set(`${exp}.m`, getComboVal(`combo-map-${exp}`));
+    set(`${exp}.a`, getComboVal(`combo-aeth-${exp}`));
+    set(`${exp}.t`, d.targets);
+    if (d.maxTargets !== '12') set(`${exp}.max`, d.maxTargets);
+    if (d.instance) set(`${exp}.i`, d.instanceNum);
+    if (isPreShb(exp) && d.startInMin !== '5') set(`${exp}.st`, d.startInMin);
+    set(`${exp}.msg`, d.customMsg);
+    set(`${exp}.sc`, d.scouts);
+    if (d.progEnabled) p.set(`${exp}.p`, '1');
+    if (d.showRewards) p.set(`${exp}.r`, '1');
+  });
+
+  return p.toString();
+}
+
+/* Load an encoded train into the form, replacing whatever is there.
+   Every value goes through the same clamps as typed input. */
+function applyTrain(encoded) {
+  const p = new URLSearchParams(encoded);
+  const get = key => (p.get(key) || '').trim();
+
+  initWorldCombo(get('w'));
+
+  const sp = get('sp') || 'relaxed';
+  selectedSpeed = ['slow', 'relaxed', 'fast', 'custom'].includes(sp) ? sp : 'relaxed';
+  document.querySelectorAll('#speed-pills .pill')
+    .forEach(x => x.classList.toggle('active', x.dataset.speed === selectedSpeed));
+  const customSpeed = document.getElementById('speed-custom');
+  customSpeed.value = get('cs');
+  customSpeed.classList.toggle('show', selectedSpeed === 'custom');
+
+  document.getElementById('gif-url').value = get('gif');
+  syncGifPicks();
+  updateGifPreview();
+  updateGifNameRow();
+
+  selectedExps = EXP_ORDER.filter(e => get('e').split('.').includes(e));
+  expData = {};
+  selectedExps.forEach(exp => {
+    const d = newExpData();
+    d.mapIdx      = Math.max(0, ZONES[exp].findIndex(z => z.map === get(`${exp}.m`)));
+    d.aeth        = get(`${exp}.a`);
+    d.maxTargets  = get(`${exp}.max`) ? clampMaxTargets(get(`${exp}.max`)) : '12';
+    d.targets     = clampTargets(get(`${exp}.t`), d.maxTargets);
+    d.instance    = !!get(`${exp}.i`) && parseInt(d.maxTargets, 10) > 12;
+    if (d.instance) d.instanceNum = clampInstanceNum(get(`${exp}.i`));
+    if (get(`${exp}.st`)) d.startInMin = clampMinutes(get(`${exp}.st`));
+    d.customMsg   = get(`${exp}.msg`);
+    d.scouts      = get(`${exp}.sc`);
+    d.progEnabled = get(`${exp}.p`) === '1';
+    d.showRewards = get(`${exp}.r`) === '1';
+    expData[exp] = d;
+  });
+  document.querySelectorAll('#exp-pills .pill')
+    .forEach(x => x.classList.toggle('active', selectedExps.includes(x.dataset.exp)));
+
+  noBreaks        = get('nb') === '1' && selectedExps.length > 1;
+  noBreaksProg    = get('nbp') !== '0';
+  noBreaksRewards = get('nbr') === '1';
+
+  renderTrainOptions();
+  renderExpSections();
+  update();
+}
+
+/* Short tab / timer name for an encoded train, e.g. "Phoenix · ShB > DT". */
+function trainLabel(encoded) {
+  const p     = new URLSearchParams(encoded);
+  const world = p.get('w') || 'New train';
+  const exps  = (p.get('e') || '').split('.').filter(Boolean);
+  return exps.length ? `${world} · ${exps.join(' > ')}` : world;
+}
+
+/* Called from update(): record the active train, mirror it into the
+   address bar (replaceState, so typing doesn't flood Back), and persist. */
+function syncTrainState() {
+  const encoded = serializeTrain();
+  trains[activeTrain] = encoded;
+  history.replaceState(null, '', encoded ? `#${encoded}` : location.pathname + location.search);
+  try {
+    localStorage.setItem(TRAINS_STORAGE_KEY, JSON.stringify({ trains, active: activeTrain }));
+  } catch {}
+  renderTrainTabs();
+}
+
+function renderTrainTabs() {
+  const bar = document.getElementById('train-tabs');
+  bar.innerHTML = trains.map((t, i) => `
+    <div class="train-tab${i === activeTrain ? ' active' : ''}" onclick="switchTrain(${i})" title="${escAttr(trainLabel(t))}">
+      <span class="train-tab-label">${escHtml(trainLabel(t))}</span>
+      ${trains.length > 1 ? `<button type="button" class="train-tab-close" title="Close this train"
+              onclick="event.stopPropagation(); closeTrain(${i})"><i class="ti ti-x"></i></button>` : ''}
+    </div>
+  `).join('') + `
+    <button type="button" class="train-tab-add" title="Prepare another train" onclick="addTrain()">
+      <i class="ti ti-plus"></i>
+    </button>`;
+}
+
+function switchTrain(idx) {
+  if (idx === activeTrain) return;
+  activeTrain = idx;
+  applyTrain(trains[idx]);
+}
+
+function addTrain(encoded = '') {
+  trains.push(encoded);
+  activeTrain = trains.length - 1;
+  applyTrain(encoded);
+}
+
+function closeTrain(idx) {
+  if (trains[idx] && !confirm(`Close "${trainLabel(trains[idx])}"? Its entries will be lost.`)) return;
+  trains.splice(idx, 1);
+  const wasActive = idx === activeTrain;
+  if (idx < activeTrain) activeTrain--;
+  activeTrain = Math.min(activeTrain, trains.length - 1);
+  if (wasActive) applyTrain(trains[activeTrain]);
+  else syncTrainState();
+}
+
+/* Open a train link: reuse a tab already holding exactly this train,
+   else fill the current tab if it's blank, else open a new tab. */
+function openTrainLink(hash) {
+  const encoded = new URLSearchParams(hash).toString();
+  const existing = trains.indexOf(encoded);
+  if (existing >= 0) {
+    activeTrain = existing;
+  } else if (!trains[activeTrain]) {
+    trains[activeTrain] = encoded;
+  } else {
+    trains.push(encoded);
+    activeTrain = trains.length - 1;
+  }
+  applyTrain(trains[activeTrain]);
+}
+
+function loadSavedTrains() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TRAINS_STORAGE_KEY));
+    if (Array.isArray(saved?.trains) && saved.trains.length) {
+      trains      = saved.trains.map(t => String(t));
+      activeTrain = Math.min(Math.max(0, parseInt(saved.active, 10) || 0), trains.length - 1);
+    }
+  } catch {}
+}
+
+/* Pasting a different train link into the address bar of an open page. */
+window.addEventListener('hashchange', () => {
+  const hash = location.hash.slice(1);
+  if (hash !== trains[activeTrain]) openTrainLink(hash);
+});
+
+function flashButton(btn, text) {
+  const label = btn.querySelector('span');
+  label.dataset.original ??= label.textContent;
+  label.textContent = text;
+  clearTimeout(btn._flashTimer);
+  btn._flashTimer = setTimeout(() => { label.textContent = label.dataset.original; }, 1800);
+}
+
+document.getElementById('train-copy-link').addEventListener('click', (e) => {
+  const btn = e.currentTarget;
+  navigator.clipboard.writeText(location.href).then(() => flashButton(btn, 'Copied!'));
+});
+
+document.getElementById('train-duplicate').addEventListener('click', () => {
+  addTrain(trains[activeTrain]);
+});
+
+document.getElementById('train-clear').addEventListener('click', () => {
+  if (trains[activeTrain] && !confirm('Clear every entry of this train?')) return;
+  applyTrain('');
+});
+
 /* ── Init ───────────────────────────────────────────────────── */
-update();
+loadSavedTrains();
+if (location.hash.length > 1) openTrainLink(location.hash.slice(1));
+else applyTrain(trains[activeTrain]);

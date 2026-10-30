@@ -20,6 +20,16 @@
 <main>
 
   <div class="card">
+    <div class="card-title">Trains <span class="label-hint">prepare several and switch between them · the link always holds the train you're on</span></div>
+    <div class="train-tabs" id="train-tabs"></div>
+    <div class="train-actions">
+      <button type="button" class="btn" id="train-copy-link" title="Copy a link to this train"><i class="ti ti-link"></i> <span>Copy link</span></button>
+      <button type="button" class="btn" id="train-duplicate" title="Open a copy of this train in a new tab"><i class="ti ti-copy-plus"></i> <span>Duplicate</span></button>
+      <button type="button" class="btn" id="train-clear" title="Empty this train's form"><i class="ti ti-eraser"></i> <span>Clear</span></button>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-title">World &amp; speed</div>
     <div class="field">
       <label for="combo-world-input">World</label>
@@ -80,7 +90,7 @@
 <div id="timer-panel" style="display:none">
   <div class="timer-head">
     <i class="ti ti-alarm"></i>
-    <span>Train countdown</span>
+    <span id="timer-title">Train countdown</span>
     <button id="timer-close" title="Dismiss"><i class="ti ti-x"></i></button>
   </div>
   <div id="timer-display">10:30</div>
