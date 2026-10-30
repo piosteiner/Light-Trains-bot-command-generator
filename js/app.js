@@ -226,88 +226,127 @@ function updateGifNameRow() {
   }
 
   nameRow.style.display = 'block';
-  // pre-fill with existing saved name if known, but don't overwrite if user is typing
+  // pre-fill with the saved name (or clear it for an unsaved link, so it isn't
+  // saved under the previous GIF's name), but don't overwrite while the user types
   const saved = loadSavedGifs();
   const existing = saved.find(g => g.url === url);
-  if (existing && document.activeElement !== nameInput) {
-    nameInput.value = existing.label;
+  if (document.activeElement !== nameInput) {
+    nameInput.value = existing ? existing.label : '';
   }
 }
 
-/* ── GIF preview ────────────────────────────────────────────── */
+/* ── GIF link check & preview ───────────────────────────────── */
+/* Whether Discord shows a link as a GIF depends on its format (host and
+   path), not on the file: the same Tenor GIF works from c.tenor.com and
+   fails from media1.tenor.com. GIF_LINK_RULES in data.js records the
+   tested formats; this checks a link against them and previews the GIF. */
 
-/* Returns true if the URL is a direct media host URL that won't embed properly in Discord. */
-function isIncompatibleForDiscord(url) {
-  // Only raw media.tenor.com URLs are known to not embed as GIFs in Discord
-  return /media\d*\.tenor\.com/i.test(url);
+function matchGifRule(url) {
+  return GIF_LINK_RULES.find(r => r.pattern.test(url)) || null;
 }
 
+/* media*.tenor.com/<id>/<name>.gif → c.tenor.com/<id>/tenor.gif: the same file,
+   in the format Discord shows as a GIF. */
+function tenorWorkingUrl(fileUrl) {
+  const m = (fileUrl || '').match(/^https?:\/\/media\d*\.tenor\.com\/(?:m\/)?([A-Za-z0-9_-]+)\/[^/?#]+\.gif/i);
+  return m ? `https://c.tenor.com/${m[1]}/tenor.gif` : null;
+}
+
+/* Giphy page links end in the GIF's id, and its file lives at a fixed address. */
+function giphyFileUrl(pageUrl) {
+  const m = pageUrl.match(/giphy\.com\/gifs\/(?:[^/?#]*-)?([A-Za-z0-9]+)\/?([?#]|$)/i);
+  return m ? `https://media.giphy.com/media/${m[1]}/giphy.gif` : null;
+}
+
+/* Tenor page links end in the post number, which Tenor's embeddable player
+   takes. (Tenor doesn't let other sites read its pages, so the GIF file
+   itself can't be looked up from here.) */
+function tenorEmbedUrl(pageUrl) {
+  const m = pageUrl.match(/tenor\.com\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?view\/[^/?#]*-(\d+)\/?([?#]|$)/i);
+  return m ? `https://tenor.com/embed/${m[1]}` : null;
+}
+
+function showGifVerdict(hint, rule) {
+  let icon, text;
+  if (!rule) {
+    icon = 'ti-help-circle';
+    text = 'Untested link format — Discord may or may not show it as a GIF. '
+      + 'Try it once, then add the result to <code>GIF_LINK_RULES</code> in data.js.';
+  } else if (rule.verdict === 'works') {
+    icon = 'ti-check';
+    text = `Shows as a GIF in Discord <span class="gif-rule">(${rule.name})</span>.`;
+  } else {
+    icon = 'ti-alert-triangle';
+    text = rule.tested
+      ? `Discord won't show this as a GIF <span class="gif-rule">(${rule.name})</span>. ${rule.note}`
+      : `Discord probably won't show this as a GIF <span class="gif-rule">(${rule.name}, not tested yet)</span>. ${rule.note}`;
+  }
+  hint.innerHTML = `<i class="ti ${icon}"></i><span>${text}</span>`;
+  hint.style.display = 'flex';
+}
+
+/* Add a button to the hint that swaps in the working version of the link.
+   A saved GIF moves to the new link, keeping its name. */
+function offerGifFix(hint, fixedUrl) {
+  const oldUrl = val('gif-url');
+  if (!fixedUrl || fixedUrl === oldUrl) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn gif-fix';
+  btn.title = fixedUrl;
+  btn.innerHTML = '<i class="ti ti-wand"></i> <span>Use the working link</span>';
+  btn.addEventListener('click', () => {
+    const saved = loadSavedGifs();
+    const entry = saved.find(g => g.url === oldUrl);
+    if (entry && !saved.some(g => g.url === fixedUrl)) {
+      entry.url = fixedUrl;
+      persistGifs(saved);
+      rebuildSavedPills();
+    }
+    document.getElementById('gif-url').value = fixedUrl;
+    syncGifPicks();
+    updateGifPreview();
+    updateGifNameRow();
+    update();
+  });
+  hint.querySelector('span').append(' ', btn);
+}
 
 function updateGifPreview() {
-  const url  = val('gif-url');
-  const box  = document.getElementById('gif-preview');
-  const img  = box.querySelector('img');
-  const hint = document.getElementById('gif-url-hint');
+  const url    = val('gif-url');
+  const box    = document.getElementById('gif-preview');
+  const img    = box.querySelector('img');
+  const player = box.querySelector('iframe');
+  const hint   = document.getElementById('gif-url-hint');
 
   hint.style.display = 'none';
   box.style.display  = 'none';
+  img.onload = img.onerror = null;   // a late event from the old image mustn't hide the new preview
   img.src = '';
+  img.style.display = '';
+  player.removeAttribute('src');
+  player.style.display = 'none';
 
   if (!url) return;
 
-  // Direct media host URLs — previewable locally but won't embed in Discord
-  if (isIncompatibleForDiscord(url)) {
-    hint.style.display = 'block';
-    hint.innerHTML = `<i class="ti ti-alert-triangle"></i>
-      <span>This <code>media.tenor.com</code> URL won't embed as a GIF in Discord.
-      Use the short Tenor link instead — e.g. <code>https://tenor.com/reygSVZAanM.gif</code>.</span>`;
+  showGifVerdict(hint, matchGifRule(url));
+  offerGifFix(hint, tenorWorkingUrl(url));
+
+  const embed = tenorEmbedUrl(url);
+  if (embed) {
+    img.style.display = 'none';
+    player.style.display = 'block';
+    player.src = embed;
     box.style.display = 'block';
-    img.onerror = () => { box.style.display = 'none'; };
-    img.onload  = () => { box.style.display = 'block'; };
-    img.src = url;
     return;
   }
 
-  // Short tenor.com or tenor.com/view URLs — fetch og:image via CORS proxy for preview
-  if (/tenor\.com/i.test(url)) {
-    hint.style.display = 'block';
-    hint.innerHTML = `<i class="ti ti-loader"></i> <span>Loading preview…</span>`;
-    const proxy = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-    fetch(proxy, { signal: AbortSignal.timeout(7000) })
-      .then(r => r.text())
-      .then(html => {
-        const m = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
-        if (m && m[1]) {
-          hint.style.display = 'none';
-          img.onerror = () => { box.style.display = 'none'; };
-          img.onload  = () => { box.style.display = 'block'; };
-          img.src = m[1];
-        } else {
-          hint.innerHTML = `<i class="ti ti-check"></i>
-            <span>This URL works in Discord. Preview unavailable.</span>`;
-        }
-      })
-      .catch(() => {
-        hint.innerHTML = `<i class="ti ti-check"></i>
-          <span>This URL works in Discord. Preview unavailable.</span>`;
-      });
-    return;
-  }
+  // Tenor short links can't be resolved from here; the hint says what to paste instead
+  if (/^https?:\/\/(www\.)?tenor\.com\//i.test(url)) return;
 
-  // Giphy share page — valid for Discord, no local preview
-  if (/giphy\.com\/gifs\//i.test(url)) {
-    hint.style.display = 'block';
-    hint.innerHTML = `<i class="ti ti-check"></i>
-      <span>This URL works in Discord. No local preview available.</span>`;
-    return;
-  }
-
-  // Any other direct image URL — preview directly
-  box.style.display = 'block';
   img.onerror = () => { box.style.display = 'none'; };
   img.onload  = () => { box.style.display = 'block'; };
-  img.src = url;
+  img.src = giphyFileUrl(url) || url;
 }
 
 document.getElementById('gif-url').addEventListener('input', () => {

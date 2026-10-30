@@ -421,6 +421,10 @@ input::placeholder { color: var(--text-dim); }
 }
 
 #gif-url-hint i { flex-shrink: 0; margin-top: 2px; }
+#gif-url-hint .ti-help-circle    { color: var(--text-dim); }
+#gif-url-hint .gif-rule          { color: var(--text-dim); }
+#gif-url-hint .gif-fix           { margin-top: 6px; }
+#gif-url-hint .gif-fix i         { margin-top: 0; color: var(--accent); }
 #gif-url-hint .ti-check          { color: var(--success); }
 #gif-url-hint .ti-alert-triangle { color: #e8a84a; }
 #gif-url-hint .ti-loader         { color: var(--text-muted); animation: spin 1s linear infinite; }
@@ -451,6 +455,14 @@ input::placeholder { color: var(--text-dim); }
   height: auto;
   max-height: 160px;
   object-fit: cover;
+}
+
+/* Tenor's own player, for Tenor page links (their file can't be read from here) */
+#gif-preview iframe {
+  display: block;
+  width: 240px;
+  height: 160px;
+  border: 0;
 }
 
 #gif-preview img[alt="Loading preview…"] {

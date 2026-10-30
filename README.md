@@ -151,9 +151,35 @@ Per-kill reward amounts live in `EXP_REWARDS` in `data.js`, one entry per curren
 
 - **Static entries** come from `GIF_LIBRARY` in `data.js` — edit that array to add permanent presets.
 - **Saved entries** are stored in `localStorage` (`hunt-train-gif-library-v2`), sorted alphabetically, each with a rename (✏️) and delete (✕) button on its pill.
-- Pasting a URL shows a live preview below the field. Tenor/Giphy share-page URLs (`tenor.com/view/...`, `giphy.com/gifs/...`, or short `tenor.com/xxxxx.gif` links) can't be fetched for a local preview due to browser CORS restrictions, but **are valid to paste into the command** — Discord renders them natively. Raw `media.tenor.com/...` URLs preview fine locally but are flagged with a warning because they **don't** embed properly through the relay bot; use the short Tenor link instead.
+- Pasting a URL checks it against **`GIF_LINK_RULES`** in `data.js` (see below) and shows a preview below the field.
 - The GIF, once set, is appended directly after the speed bracket with no space: `Speed: [relaxed](https://...)`.
 
+### Will the GIF show in Discord?
+
+Discord decides on its own servers whether a link becomes a GIF, and it goes by the link's **format** (site and path), not the file: the very same Tenor GIF shows from `c.tenor.com/<id>/tenor.gif` but not from `media1.tenor.com/m/<id>/<name>.gif`. So `GIF_LINK_RULES` lists link formats tested on the server, each with its verdict and example links, and the tool labels a pasted link:
+
+| Label | Meaning |
+|---|---|
+| ✅ Shows as a GIF | Matches a format that worked |
+| ⚠️ Won't show as a GIF | Matches a format that failed (`tested: false` → "probably", predicted but not yet tried) |
+| ❓ Untested link format | Matches nothing yet — try it once in Discord and add the result as a rule |
+
+Current findings:
+
+| Format | Result |
+|---|---|
+| `giphy.com/gifs/…` | Works |
+| `media*.giphy.com/media/…/giphy.gif` | Works |
+| `c.tenor.com/<id>/tenor.gif` | Works |
+| `media*.tenor.com/…` | Fails — **Use the working link** rewrites it to `c.tenor.com` |
+| `tenor.com/view/…` (any language prefix) | Fails — the page points Discord at its `media1.tenor.com` file |
+| `tenor.com/<code>.gif` short link | Predicted to fail — it redirects to a `tenor.com/view` page |
+
+**For Tenor:** on the Tenor page right-click the GIF → *Copy image address*, paste that, and click **Use the working link**. A saved GIF keeps its name when its link is fixed this way.
+
+Previews need no third-party service: Giphy page links are previewed from their GIF id, Tenor page links with Tenor's own embedded player, and file links directly. Tenor short links get no preview, since Tenor doesn't let other sites follow them.
+
+A matching ✅ format plus a preview that loads (so the GIF exists) is as close to certain as it gets; Discord can still change its behaviour, so add a rule whenever a result surprises you.
 ---
 
 ## Field validation

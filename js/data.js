@@ -129,6 +129,63 @@ const EXP_REWARDS = {
   ],
 };
 
+/* GIF link formats, and whether Discord shows a link of that format as a GIF
+   when it's posted through the relay bot. Built from links tested on the
+   server: when a new format is tried, add an entry with the link as example.
+   The first matching pattern wins; links matching none are "untested".
+     verdict: 'works' | 'fails'
+     tested:  false = predicted from how the link behaves, not yet tried */
+const GIF_LINK_RULES = [
+  {
+    name: 'Giphy page',
+    pattern: /^https?:\/\/(www\.)?giphy\.com\/gifs\/[^/?#]+\/?([?#].*)?$/i,
+    verdict: 'works', tested: true,
+    examples: [
+      'https://giphy.com/gifs/BichiMao-bichimao-cutecats-bichi-mao-iY25xIloX4bkwhcJJG',
+      'https://giphy.com/gifs/BichiMao-bichimao-cutecats-bichi-mao-46kg3fVOWQB9NZpibk',
+    ],
+  },
+  {
+    name: 'Giphy file',
+    pattern: /^https?:\/\/media\d*\.giphy\.com\/media\/.+\.gif([?#].*)?$/i,
+    verdict: 'works', tested: true,
+    examples: [
+      'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXQ0eW9semcxMXV5aGl2anlweTZxZjR1cnFjOTd2dXp6aDV4Z3R6dCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/iY25xIloX4bkwhcJJG/giphy.gif',
+    ],
+  },
+  {
+    name: 'Tenor file on c.tenor.com',
+    pattern: /^https?:\/\/c\.tenor\.com\/[A-Za-z0-9_-]+\/[^/?#]+\.gif$/i,
+    verdict: 'works', tested: true,
+    examples: ['https://c.tenor.com/vxq76cN5xyMAAAAC/tenor.gif'],
+  },
+  {
+    // Same file as on c.tenor.com, but Discord doesn't show it as a GIF.
+    name: 'Tenor file on media.tenor.com',
+    pattern: /^https?:\/\/media\d*\.tenor\.com\//i,
+    verdict: 'fails', tested: true,
+    note: 'The same GIF on c.tenor.com works.',
+    examples: ['https://media1.tenor.com/m/vxq76cN5xyMAAAAC/pixelplace.gif'],
+  },
+  {
+    // The page points Discord at its media1.tenor.com file (see above).
+    name: 'Tenor page',
+    pattern: /^https?:\/\/(www\.)?tenor\.com\/([a-z]{2}(-[a-z]{2})?\/)?view\//i,
+    verdict: 'fails', tested: true,
+    note: 'On the Tenor page, right-click the GIF → "Copy image address" and paste that here; '
+      + 'it gets turned into the c.tenor.com link, which works.',
+    examples: ['https://tenor.com/en-GB/view/pixelplace-gif-24586548'],
+  },
+  {
+    name: 'Tenor short link',
+    pattern: /^https?:\/\/(www\.)?tenor\.com\/[A-Za-z0-9]+\.gif$/i,
+    verdict: 'fails', tested: false,
+    note: 'It opens a Tenor page. There, right-click the GIF → "Copy image address" and paste that here; '
+      + 'it gets turned into the c.tenor.com link, which works.',
+    examples: ['https://tenor.com/reygSVZAanM.gif'],
+  },
+];
+
 /* GIF library — quick-pick options shown under World & Speed.
    Add or replace entries here; "label" is what shows on the pill. */
 const GIF_LIBRARY = [
