@@ -16,6 +16,7 @@ hunt-train/
 │   └── style.css      All styling & CSS variables (theme lives at the top)
 └── js/
     ├── data.js         Static data: worlds, expansions, zones/aetherytes, rewards, GIF library
+    ├── art.js          Faint background art per expansion section (original SVG line drawings)
     ├── combo.js         Reusable searchable combobox component (type-to-filter dropdowns)
     ├── timer.js         Sticky countdown timer with sound cues (self-contained IIFE)
     └── app.js           All application logic: state, rendering, command building, validation

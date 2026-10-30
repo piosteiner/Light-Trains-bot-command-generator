@@ -125,6 +125,51 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  position: relative;   /* anchors .exp-art */
+  isolation: isolate;   /* keeps .exp-art's z-index:-1 above the section background */
+}
+
+/* Expansion colours: the expansion sections (app.js sets their --exp) and
+   the expansion pills take their expansion's --exp-color-* as accent, so
+   everything using the accent (title, badge, labels, focus borders, the
+   active pill) follows. */
+.exp-section,
+#exp-pills .pill {
+  --accent:        var(--exp);
+  --accent-bg:     color-mix(in srgb, var(--exp) 9%, transparent);
+  --accent-border: color-mix(in srgb, var(--exp) 35%, transparent);
+}
+
+#exp-pills .pill[data-exp="ARR"] { --exp: var(--exp-color-ARR); }
+#exp-pills .pill[data-exp="HW"]  { --exp: var(--exp-color-HW); }
+#exp-pills .pill[data-exp="SB"]  { --exp: var(--exp-color-SB); }
+#exp-pills .pill[data-exp="ShB"] { --exp: var(--exp-color-ShB); }
+#exp-pills .pill[data-exp="EW"]  { --exp: var(--exp-color-EW); }
+#exp-pills .pill[data-exp="DT"]  { --exp: var(--exp-color-DT); }
+
+/* Faint expansion art (js/art.js) in the section's top-right corner, behind
+   the fields. The layer clips itself, so the section can keep overflow
+   visible for the map/aetheryte dropdowns; it fades out toward the left
+   and bottom so the fields stay readable. */
+.exp-art {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  color: var(--exp);
+}
+
+.exp-art svg {
+  position: absolute;
+  top: -6px;
+  right: -18px;
+  width: min(300px, 62%);
+  height: auto;
+  opacity: 0.2;
+  -webkit-mask-image: linear-gradient(200deg, #000 35%, transparent 85%);
+          mask-image: linear-gradient(200deg, #000 35%, transparent 85%);
 }
 
 .exp-section-title {

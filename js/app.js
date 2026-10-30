@@ -434,8 +434,10 @@ function renderExpSections() {
     const zones = ZONES[exp];
     const sec   = document.createElement('div');
     sec.className = 'exp-section';
+    sec.style.setProperty('--exp', `var(--exp-color-${exp})`);
 
     sec.innerHTML = `
+      <div class="exp-art" aria-hidden="true">${EXP_ART[exp] || ''}</div>
       <div class="exp-section-title">
         <i class="ti ti-train" aria-hidden="true" style="font-size:15px"></i>
         ${EXP_LABELS[exp]}
