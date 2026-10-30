@@ -134,6 +134,7 @@ main {
    everything using the accent (title, badge, labels, focus borders, the
    active pill) follows. */
 .exp-section,
+.preview-block,
 #exp-pills .pill {
   --accent:        var(--exp);
   --accent-bg:     color-mix(in srgb, var(--exp) 9%, transparent);
@@ -170,6 +171,22 @@ main {
   opacity: 0.2;
   -webkit-mask-image: linear-gradient(200deg, #000 35%, transparent 85%);
           mask-image: linear-gradient(200deg, #000 35%, transparent 85%);
+}
+
+/* Official artwork, fading out from the top-right corner before reaching its
+   own edges. Luminosity blending keeps the painting's light and shade but
+   takes the colour from the section tint, so a mostly white painting reads
+   as artwork instead of grey haze on the dark background. */
+.exp-art img {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(440px, 75%);
+  height: auto;
+  opacity: 0.3;
+  mix-blend-mode: luminosity;
+  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 25%, transparent 92%);
+          mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 25%, transparent 92%);
 }
 
 .exp-section-title {
@@ -620,6 +637,16 @@ input::placeholder { color: var(--text-dim); }
 }
 
 /* ── Preview ──────────────────────────────────────────────── */
+/* One expansion's commands; app.js sets --exp. Carries the same faint art
+   as the expansion's form section (.exp-art). */
+.preview-block {
+  position: relative;
+  isolation: isolate;
+  border-left: 3px solid var(--exp);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding-left: 0.75rem;
+}
+
 .preview-block + .preview-block { margin-top: 1rem; }
 
 .exp-preview-divider {
@@ -666,6 +693,11 @@ input::placeholder { color: var(--text-dim); }
 }
 
 .preview-visual:hover  { border-color: var(--accent-border); }
+
+/* Let the expansion art show through the command boxes a little */
+.preview-block .preview-visual {
+  background: color-mix(in srgb, var(--surface2) 78%, transparent);
+}
 
 .preview-visual.copied {
   border-color: var(--success-border);
@@ -857,3 +889,4 @@ input::placeholder { color: var(--text-dim); }
 .site-foot { text-align: center; padding: 24px 16px 40px; font-size: 12px; }
 .site-foot a { color: var(--text-dim); }
 .site-foot a:hover { color: var(--text); }
+.site-foot .legal { max-width: 560px; margin: 10px auto 0; font-size: 11px; line-height: 1.5; color: var(--text-dim); }

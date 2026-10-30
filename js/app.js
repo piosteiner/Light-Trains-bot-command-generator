@@ -423,6 +423,15 @@ document.querySelectorAll('#exp-pills .pill').forEach(p => {
   });
 });
 
+/* Faint background art for an expansion (js/art.js): its official image if
+   one is listed, else its line drawing. */
+function expArtHTML(exp) {
+  const image = EXP_ART_IMAGES[exp];
+  return `<div class="exp-art" aria-hidden="true">${
+    image ? `<img src="${image}" alt="" />` : (EXP_ART[exp] || '')
+  }</div>`;
+}
+
 /* ── Render expansion sections ──────────────────────────────── */
 function renderExpSections() {
   const container = document.getElementById('exp-sections');
@@ -437,7 +446,7 @@ function renderExpSections() {
     sec.style.setProperty('--exp', `var(--exp-color-${exp})`);
 
     sec.innerHTML = `
-      <div class="exp-art" aria-hidden="true">${EXP_ART[exp] || ''}</div>
+      ${expArtHTML(exp)}
       <div class="exp-section-title">
         <i class="ti ti-train" aria-hidden="true" style="font-size:15px"></i>
         ${EXP_LABELS[exp]}
@@ -1169,7 +1178,8 @@ function update() {
 
   area.innerHTML = selectedExps.map((exp, i) => `
     ${i > 0 ? '<div class="exp-preview-divider"></div>' : ''}
-    <div class="preview-block" style="border-left:3px solid var(--exp-color-${exp}); padding-left:.75rem">
+    <div class="preview-block" style="--exp: var(--exp-color-${exp})">
+      ${expArtHTML(exp)}
       <div class="preview-exp-label">
         <span class="exp-icon">${EXP_ICONS[exp]}</span> ${EXP_LABELS[exp]}
       </div>
@@ -1234,7 +1244,8 @@ function renderMergedPreview(area) {
     }).join('');
 
   area.innerHTML = `
-    <div class="preview-block" style="border-left:3px solid var(--exp-color-${first}); padding-left:.75rem">
+    <div class="preview-block" style="--exp: var(--exp-color-${first})">
+      ${expArtHTML(first)}
       <div class="preview-exp-label">
         <span class="exp-icon">🚄</span> Merged train announcement (${selectedExps.join(' > ')})
       </div>

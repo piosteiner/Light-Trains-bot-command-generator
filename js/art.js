@@ -1,7 +1,16 @@
-/* js/art.js — faint background art for each expansion section.
-   Original line drawings inspired by each expansion's setting (not
-   Square Enix artwork). Drawn in currentColor, so each section tints its
-   art with its --exp-color-* variable; style.css sets size and fade. */
+/* js/art.js — faint background art for each expansion's form section and
+   command preview. Official artwork where an image is listed, otherwise an
+   original line drawing inspired by the expansion's setting, drawn in
+   currentColor so it takes the expansion's --exp-color-*. style.css sets
+   size and fade. */
+
+/* Official artwork (FINAL FANTASY XIV © SQUARE ENIX, used under the FFXIV
+   Materials Usage License; the notice is in the page footer). An expansion
+   listed here shows its image instead of the line drawing below. Put the
+   images in img/art/ as ~720px-wide WebP; they're shown faintly. */
+const EXP_ART_IMAGES = {
+  HW: 'img/art/HW.webp',
+};
 
 const EXP_ART = {
   /* A Realm Reborn — Dalamud falling over the flames of the Calamity */

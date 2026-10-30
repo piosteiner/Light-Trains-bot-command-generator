@@ -16,7 +16,7 @@ hunt-train/
 │   └── style.css      All styling & CSS variables (theme lives at the top)
 └── js/
     ├── data.js         Static data: worlds, expansions, zones/aetherytes, rewards, GIF library
-    ├── art.js          Faint background art per expansion section (original SVG line drawings)
+    ├── art.js          Faint background art per expansion: official images list + fallback SVG line drawings
     ├── combo.js         Reusable searchable combobox component (type-to-filter dropdowns)
     ├── timer.js         Sticky countdown timer with sound cues (self-contained IIFE)
     └── app.js           All application logic: state, rendering, command building, validation
@@ -221,6 +221,17 @@ A sticky panel pinned to the bottom-right of the screen (scrolls with you, alway
 | `hunt-train-trains-v1` | Prepared trains: `{ trains: [encoded, …], active }`, each entry in the link format above |
 
 The form itself is restored from the active train (and the `#` link). Use **Clear** for a fresh form.
+
+---
+
+## Expansion art
+
+Each expansion's form section and command preview carry faint background art, tinted in the expansion's colour (`--exp-color-*` in `style.css`).
+
+- **Official artwork**: list the image in `EXP_ART_IMAGES` in `js/art.js` and put the file in `img/art/` — a ~720px-wide WebP is plenty, since it's shown faint (the Heavensward image is 61 KB). It's blended in luminosity mode, so it takes the section's colour, and fades out from the top-right corner.
+- **Expansions without an image** show an original line drawing from `EXP_ART` in the same file.
+
+Official art is FINAL FANTASY XIV © SQUARE ENIX, used under the FINAL FANTASY XIV Materials Usage License (published by Square Enix on the Lodestone), which allows non-commercial fan use with a copyright notice. That notice is in the page footer; keep it there, and keep the tool free.
 
 ---
 
