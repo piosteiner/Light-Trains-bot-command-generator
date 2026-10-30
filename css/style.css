@@ -173,20 +173,33 @@ main {
           mask-image: linear-gradient(200deg, #000 35%, transparent 85%);
 }
 
-/* Official artwork in its own colours, fading out from the top-right corner
-   before reaching its own edges. (Blend modes can't tint it: .exp-art is
-   its own stacking context, and the section background behind it is
-   mostly transparent.) */
+/* Official artwork in its own colours, filling the top-right of the section
+   and fading out toward the left and the bottom (two gradients, both must
+   be opaque), so it never shows an edge. --art-opacity sets its strength.
+   (Blend modes can't tint it: .exp-art is its own stacking context.) */
 .exp-art img {
   position: absolute;
   top: 0;
   right: 0;
-  width: min(440px, 75%);
+  width: min(560px, 85%);
   aspect-ratio: 1;
   object-fit: cover;   /* non-square art: EXP_ART_IMAGES' focus picks the part shown */
-  opacity: 0.3;
-  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 25%, transparent 92%);
-          mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 25%, transparent 92%);
+  opacity: var(--art-opacity, 0.55);
+  -webkit-mask-image:
+    linear-gradient(to left, #000 35%, transparent 95%),
+    linear-gradient(to bottom, #000 30%, transparent 90%);
+  -webkit-mask-composite: source-in;
+          mask-image:
+    linear-gradient(to left, #000 35%, transparent 95%),
+    linear-gradient(to bottom, #000 30%, transparent 90%);
+          mask-composite: intersect;
+}
+
+/* Keeps labels legible where they sit on bright parts of the artwork;
+   invisible on the dark background. */
+.exp-section,
+.preview-block {
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
 }
 
 .exp-section-title {
@@ -694,9 +707,9 @@ input::placeholder { color: var(--text-dim); }
 
 .preview-visual:hover  { border-color: var(--accent-border); }
 
-/* Let the expansion art show through the command boxes a little */
+/* Let the expansion art show through the command boxes */
 .preview-block .preview-visual {
-  background: color-mix(in srgb, var(--surface2) 78%, transparent);
+  background: color-mix(in srgb, var(--surface2) 60%, transparent);
 }
 
 .preview-visual.copied {
