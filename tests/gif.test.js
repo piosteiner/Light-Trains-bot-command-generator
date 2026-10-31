@@ -109,5 +109,33 @@ module.exports = async ({ browser, BASE, check }) => {
 
   await setGif('https://example.com/other.gif');
   check('name field cleared for unsaved link', (await page.inputValue('#gif-name')) === '');
+
+  // Name and link typed into each other's fields
+  const LINK = 'https://tenor.com/view/anime-dance-gainax-gif-7624284469323029107';
+  await page.evaluate(() => localStorage.removeItem('hunt-train-gif-library-v2'));
+  await page.goto(BASE + '#w=Odin&e=DT&DT.t=3');
+  await page.reload();
+  await setGif('mako fight');
+  check('plain name: hint asks for a link', (await page.innerText('#gif-url-hint')).includes('starting with https://'));
+  await page.fill('#gif-name', LINK);
+  const notLink = await page.innerText('#gif-url-hint');
+  await page.press('#gif-name', 'Enter');
+  check('non-link is not saved', (await page.locator('.gif-pick--saved').count()) === 0);
+  check('non-link left out of command', (await page.innerText('#pv-DT')).includes('Speed: [relaxed]\n'), await page.innerText('#pv-DT'));
+  check('hint says it isn\'t a link', notLink.includes("isn't a link") && notLink.includes('GIF name field'), notLink);
+  await page.click('#gif-url-hint .gif-fix');
+  check('swap puts the link in the link field', (await page.inputValue('#gif-url')) === LINK);
+  check('swap puts the name in the name field', (await page.inputValue('#gif-name')) === 'mako fight');
+  const lib = await page.evaluate(() => JSON.parse(localStorage.getItem('hunt-train-gif-library-v2')));
+  check('swapped GIF saved correctly', lib.length === 1 && lib[0].url === LINK && lib[0].label === 'mako fight', JSON.stringify(lib));
+  check('command uses the link', (await page.innerText('#pv-DT')).includes(`(${LINK})`));
+
+  // An entry already saved the wrong way round is repaired on load; junk is dropped
+  await page.evaluate(link => localStorage.setItem('hunt-train-gif-library-v2', JSON.stringify([
+    { url: 'mako fight', label: link }, { url: 'nonsense', label: 'Junk' },
+  ])), LINK);
+  await page.reload();
+  const pills = await page.$$eval('.gif-pick--saved', els => els.map(e => [e.dataset.url, e.textContent.trim()]));
+  check('swapped saved entry repaired, junk dropped', pills.length === 1 && pills[0][0] === LINK && pills[0][1] === 'mako fight', JSON.stringify(pills));
   check('no page errors', errors.length === 0, errors.join(' / '));
 };

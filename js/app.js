@@ -88,10 +88,14 @@ function loadSavedGifs() {
     const raw = JSON.parse(localStorage.getItem(GIF_STORAGE_KEY));
     if (!Array.isArray(raw)) return [];
     // migrate old plain-string format, and fix links saved before
-    // normalizeGifUrl existed (dropping any that then duplicate another)
+    // normalizeGifUrl existed (dropping any that then duplicate another).
+    // An entry saved with name and link swapped is turned round; other
+    // entries without a link are dropped.
     const seen = new Set();
     return raw
       .map(e => typeof e === 'string' ? { url: e, label: 'GIF' } : e)
+      .map(e => !isLink(e.url) && isLink(e.label) ? { url: e.label, label: e.url || 'My GIF' } : e)
+      .filter(e => isLink(e.url))
       .map(e => ({ ...e, url: normalizeGifUrl(e.url) }))
       .filter(e => !seen.has(e.url) && seen.add(e.url));
   } catch { return []; }
@@ -102,9 +106,14 @@ function persistGifs(gifs) {
   localStorage.setItem(GIF_STORAGE_KEY, JSON.stringify(gifs));
 }
 
+/* A web address, as opposed to e.g. a GIF name typed into the link field. */
+function isLink(text) {
+  return /^https?:\/\/[^\s/]+\.[^\s]+$/i.test((text || '').trim());
+}
+
 /* Save a new GIF or rename an existing one using the inline name field. */
 function saveOrRenameGif(url) {
-  if (!url) return;
+  if (!isLink(url)) return;
   const nameInput = document.getElementById('gif-name');
   const label = (nameInput?.value || '').trim() || 'My GIF';
   const saved = loadSavedGifs();
@@ -357,6 +366,36 @@ function offerGifFix(hint, fixedUrl) {
   hint.querySelector('span').append(' ', btn);
 }
 
+/* The link field holds something that isn't a link. If the name field holds
+   one instead, the two were most likely filled the wrong way round. */
+function showNotALink(hint) {
+  const nameInput = document.getElementById('gif-name');
+  const swapped   = isLink(nameInput.value);
+  hint.innerHTML = '<i class="ti ti-alert-triangle"></i><span>This isn\'t a link, so it is left out of the command. '
+    + (swapped ? 'The link is in the GIF name field below. ' : 'Paste the GIF\'s address (starting with https://) here.')
+    + '</span>';
+  hint.style.display = 'flex';
+  if (!swapped) return;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'gif-fix';
+  btn.textContent = 'Swap link and name';
+  btn.addEventListener('click', () => {
+    const name = val('gif-url');
+    const link = nameInput.value.trim();
+    removeGif(name);
+    document.getElementById('gif-url').value = normalizeGifUrl(link);
+    nameInput.value = name;
+    saveOrRenameGif(val('gif-url'));
+    syncGifPicks();
+    updateGifPreview();
+    updateGifNameRow();
+    update();
+  });
+  hint.querySelector('span').append(btn);
+}
+
 function updateGifPreview() {
   const typed  = val('gif-url');
   const url    = normalizeGifUrl(typed);
@@ -374,6 +413,11 @@ function updateGifPreview() {
   player.style.display = 'none';
 
   if (!url) return;
+
+  if (!isLink(url)) {
+    showNotALink(hint);
+    return;
+  }
 
   showGifVerdict(hint, matchGifRule(url));
   if (url !== typed) {
@@ -412,6 +456,11 @@ document.getElementById('gif-url').addEventListener('input', () => {
 // Save/rename via Enter in the name field or URL field
 document.getElementById('gif-url').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') saveOrRenameGif(val('gif-url'));
+});
+// A link typed into the name field: offer the swap right away
+document.getElementById('gif-name').addEventListener('input', () => {
+  const url = val('gif-url');
+  if (url && !isLink(url)) showNotALink(document.getElementById('gif-url-hint'));
 });
 document.getElementById('gif-name').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') saveOrRenameGif(val('gif-url'));
@@ -808,7 +857,7 @@ setInterval(refreshLiveTimestamps, 1000);
 function buildParts(exp) {
   const world  = getComboVal('combo-world') || 'WORLD';
   const speed  = getSpeed();
-  const gif    = val('gif-url');
+  const gif    = isLink(val('gif-url')) ? val('gif-url') : '';
   // No space between ] and ( — matches Discord bot format exactly
   const speedStr = gif ? `[${speed}](${gif})` : `[${speed}]`;
   const d      = expData[exp] || {};
