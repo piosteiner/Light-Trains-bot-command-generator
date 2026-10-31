@@ -20,6 +20,8 @@ hunt-train/
     ├── combo.js         Reusable searchable combobox component (type-to-filter dropdowns)
     ├── timer.js         Sticky countdown timer with sound cues (self-contained IIFE)
     └── app.js           All application logic: state, rendering, command building, validation
+img/                  Expansion art (img/art/) and the browser-tab icon (favicon.svg)
+tests/                Browser tests, for development only (see Testing)
 ```
 
 Nothing here needs a server. `data.js` is the file you edit to add new patch content (zones, worlds, rewards) without touching logic.
@@ -32,7 +34,7 @@ Nothing here needs a server. `data.js` is the file you edit to add new patch con
 2. Pick a **World** and **Speed** (searchable dropdown + preset pills, or type a custom speed label).
 3. Optionally attach a **GIF** — pick from your saved library or paste a URL.
 4. Tick one or more **Expansions**. Each ticked expansion gets its own section below with Map, Aetheryte, Targets, Scouts, etc.
-5. Click any generated message box to copy it — every box shows a "Click to copy" hint and flashes green on success.
+5. Click any generated message box to copy it — every box shows a "Click to copy" hint and flashes green on success. Everything clickable also works from the keyboard: Tab to a box, pill or train tab, then Enter or Space.
 6. Copying the *main* command (`.sh` or `.msh`) automatically starts the sticky countdown timer.
 
 ---
@@ -114,7 +116,7 @@ These three expansions use a **different command format** from ShB/EW/DT, becaus
 
 The Unix timestamp embedded in the tag is **calculated fresh at the moment you click the copy box**, not when you first typed the "Starts in" value. Concretely: `copyCmd()` → `buildRawCmd()` → `buildParts()` → `buildRelativeTimestamp()` runs synchronously inside the click handler and reads `Date.now()` at that exact instant. So even if you spend ten minutes filling in scouts and picking a GIF before finally copying, the timestamp reflects "starts in 5 minutes from *right now*" — not from whenever you first opened the form.
 
-The on-screen preview box only re-renders when you edit a field, so it can visually look "stale" if you haven't touched anything in a while — that's cosmetic only. What lands in your clipboard is always freshly computed.
+The timestamp in the on-screen preview is refreshed every second (`refreshLiveTimestamps`), so it always matches what a copy would give right now.
 
 ---
 
@@ -176,6 +178,12 @@ Current findings:
 | `tenor.com/view/…` | Works — the format Discord's own GIF picker posts |
 | `tenor.com/en-GB/view/…` (any language part) | Fails — the tool **removes the language part automatically** (`normalizeGifUrl`) |
 | `tenor.com/<code>.gif` short link | Predicted to work — it redirects to a plain `tenor.com/view` page |
+| `i.imgur.com/<id>.gif` / `.gifv` | Predicted to work |
+| `imgur.com/…` page | Predicted to fail (still preview only) — use the `i.imgur.com` image address |
+| `cdn.discordapp.com/attachments/…` | Predicted to work, but Discord file links expire after about a day |
+| Any other link ending in `.gif` | Predicted to work, unless the site blocks it (catch-all, keep it last) |
+
+Predicted rows are `tested: false`; once you've tried one in Discord, set `tested: true` (or flip its verdict) and put the link in its `examples`.
 
 Tenor pages give Discord identical information whether or not they have a language part, and all of it points to a failing `media1.tenor.com` file. Confirmed by testing the same GIF both ways: the plain `tenor.com/view/…` link works, the `/en-GB/` one doesn't. Most likely Discord recognises that exact format itself (Tenor is its built-in GIF provider) and doesn't recognise the language variant.
 
@@ -242,3 +250,18 @@ Official art is FINAL FANTASY XIV © SQUARE ENIX, used under the FINAL FANTASY X
 ## Editing game data
 
 All FFXIV-specific data — worlds, expansion labels/command numbers/icons/colors, zone→aetheryte maps, and reward tables — lives in **`js/data.js`**. This is the only file you should need to touch when a new expansion or patch changes zones, aetherytes, or reward currencies. `js/app.js` contains no hardcoded game data.
+
+---
+
+## Testing
+
+`tests/` holds browser tests that click through the real page: train tabs and links, merged mode, GIF rules and previews, timers, copy failures, the phone layout, keyboard use and the command boxes. They're for development only; the site itself still needs no install or build.
+
+```
+cd tests
+npm install          # once: installs playwright-core, which drives your installed browser
+node run.js          # all suites
+node run.js timers   # only suites whose file name starts with "timers"
+```
+
+It uses Microsoft Edge by default; `BROWSER=chrome node run.js` uses Chrome. The GIF suite loads real GIFs from Giphy and Tenor, so it needs internet. Each suite is a `*.test.js` file exporting `async ({ browser, BASE, check }) => { … }`; add a file to add a suite.

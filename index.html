@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hunt Train Command Builder</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -37,18 +38,18 @@
     </div>
     <div class="field">
       <label>Speed</label>
-      <div class="pills" id="speed-pills">
-        <div class="pill" data-speed="slow">[slow]</div>
-        <div class="pill active" data-speed="relaxed">[relaxed]</div>
-        <div class="pill" data-speed="fast">[fast]</div>
-        <div class="pill" data-speed="custom">custom…</div>
+      <div role="button" tabindex="0" class="pills" id="speed-pills">
+        <div role="button" tabindex="0" class="pill" data-speed="slow">[slow]</div>
+        <div role="button" tabindex="0" class="pill active" data-speed="relaxed">[relaxed]</div>
+        <div role="button" tabindex="0" class="pill" data-speed="fast">[fast]</div>
+        <div role="button" tabindex="0" class="pill" data-speed="custom">custom…</div>
       </div>
       <input type="text" id="speed-custom" class="speed-custom" placeholder="enter custom speed label" />
     </div>
     <div class="field">
       <label>GIF / link <span class="label-hint">(optional — appended after speed)</span></label>
       <div class="gif-picks" id="gif-picks">
-        <div class="gif-pick active" data-url="">None</div>
+        <div role="button" tabindex="0" class="gif-pick active" data-url="">None</div>
         <!-- additional pills injected from GIF_LIBRARY in data.js -->
       </div>
       <input type="text" id="gif-url" placeholder="or paste custom URL…" />
@@ -66,13 +67,13 @@
 
   <div class="card">
     <div class="card-title">Expansions <span class="label-hint">tick one or more</span></div>
-    <div class="pills" id="exp-pills">
-      <div class="pill" data-exp="ARR">A Realm Reborn</div>
-      <div class="pill" data-exp="HW">Heavensward</div>
-      <div class="pill" data-exp="SB">Stormblood</div>
-      <div class="pill" data-exp="ShB">Shadowbringers</div>
-      <div class="pill" data-exp="EW">Endwalker</div>
-      <div class="pill" data-exp="DT">Dawntrail</div>
+    <div role="button" tabindex="0" class="pills" id="exp-pills">
+      <div role="button" tabindex="0" class="pill" data-exp="ARR">A Realm Reborn</div>
+      <div role="button" tabindex="0" class="pill" data-exp="HW">Heavensward</div>
+      <div role="button" tabindex="0" class="pill" data-exp="SB">Stormblood</div>
+      <div role="button" tabindex="0" class="pill" data-exp="ShB">Shadowbringers</div>
+      <div role="button" tabindex="0" class="pill" data-exp="EW">Endwalker</div>
+      <div role="button" tabindex="0" class="pill" data-exp="DT">Dawntrail</div>
     </div>
     <div id="train-options"></div>
   </div>

@@ -692,7 +692,7 @@ input::placeholder { color: var(--text-dim); }
   background: var(--surface2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  padding: 0.85rem 1rem;
+  padding: 1.9rem 1rem 0.85rem;   /* top: room for the copy hint */
   font-family: var(--mono);
   font-size: 12px;
   color: var(--text);
@@ -720,6 +720,12 @@ input::placeholder { color: var(--text-dim); }
 /* Inline formatting spans — mirror Discord markdown visually */
 .pv-bold   { font-weight: 700; }
 .pv-italic { font-style: italic; color: var(--text-muted); }
+
+/* Keyboard focus on clickable boxes, pills and tabs */
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 /* Click-to-copy hint badge */
 .copy-hint {

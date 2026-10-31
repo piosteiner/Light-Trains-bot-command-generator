@@ -196,6 +196,36 @@ const GIF_LINK_RULES = [
     note: 'It redirects to a plain Tenor page link, which works.',
     examples: ['https://tenor.com/reygSVZAanM.gif'],
   },
+  {
+    name: 'Imgur file',
+    pattern: /^https?:\/\/i\.imgur\.com\/[A-Za-z0-9]+\.gifv?([?#].*)?$/i,
+    verdict: 'works', tested: false,
+    note: 'Discord shows direct Imgur links (.gif, and .gifv as a looping video).',
+    examples: ['https://i.imgur.com/abc1234.gif', 'https://i.imgur.com/abc1234.gifv'],
+  },
+  {
+    name: 'Imgur page',
+    pattern: /^https?:\/\/(www\.)?imgur\.com\//i,
+    verdict: 'fails', tested: false,
+    note: 'Discord tends to show only a still preview of Imgur pages. Use the GIF\'s own address instead (right-click the GIF, copy image address: i.imgur.com/….gif).',
+    examples: ['https://imgur.com/gallery/abc1234'],
+  },
+  {
+    // Discord file links carry a signature (ex=, is=, hm=) that expires.
+    name: 'Discord file link',
+    pattern: /^https?:\/\/(cdn\.discordapp\.com|media\.discordapp\.net)\/attachments\//i,
+    verdict: 'works', tested: false,
+    note: 'But Discord file links stop working after about a day, so for a GIF you reuse, prefer a Giphy or Tenor link.',
+    examples: ['https://cdn.discordapp.com/attachments/111/222/train.gif?ex=…&is=…&hm=…'],
+  },
+  {
+    // Catch-all, so it must stay last: any other link straight to a .gif file.
+    name: 'Direct .gif file',
+    pattern: /^https?:\/\/[^/?#]+\/[^?#]*\.gif([?#].*)?$/i,
+    verdict: 'works', tested: false,
+    note: 'Discord usually shows a link straight to a .gif file, unless the site blocks it.',
+    examples: ['https://example.com/images/train.gif'],
+  },
 ];
 
 /* GIF library — quick-pick options shown under World & Speed.

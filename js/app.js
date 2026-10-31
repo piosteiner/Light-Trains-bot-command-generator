@@ -49,6 +49,23 @@ function initWorldCombo(initial = '') {
 }
 initWorldCombo();
 
+/* ── Keyboard access ─────────────────────────────────────────── */
+/* Pills, train tabs and command boxes are clickable divs. With
+   role="button" and tabindex they can be reached with Tab; Enter or
+   Space then clicks them, like a real button. */
+function makeKeyboardButton(el) {
+  el.setAttribute('role', 'button');
+  el.tabIndex = 0;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target;
+  if (el.getAttribute?.('role') !== 'button' || el.tagName === 'BUTTON') return;
+  e.preventDefault();
+  el.click();
+});
+
 /* ── Speed pills ────────────────────────────────────────────── */
 document.querySelectorAll('#speed-pills .pill').forEach(p => {
   p.addEventListener('click', () => {
@@ -126,6 +143,7 @@ function addGifPill(entry) {
 
   const pill = document.createElement('div');
   pill.className = 'gif-pick gif-pick--saved';
+  makeKeyboardButton(pill);
   pill.dataset.url = entry.url;
   pill.title = entry.label;
 
@@ -188,6 +206,7 @@ function renderGifPicks() {
     if (!g.url) return;
     const pill = document.createElement('div');
     pill.className = 'gif-pick';
+    makeKeyboardButton(pill);
     pill.dataset.url = g.url;
     pill.textContent = g.label;
     pill.addEventListener('click', () => {
@@ -274,6 +293,12 @@ function normalizeGifUrl(url) {
 function giphyFileUrl(pageUrl) {
   const m = pageUrl.match(/giphy\.com\/gifs\/(?:[^/?#]*-)?([A-Za-z0-9]+)\/?([?#]|$)/i);
   return m ? `https://media.giphy.com/media/${m[1]}/giphy.gif` : null;
+}
+
+/* Imgur .gifv is a video page; the .gif next to it can be previewed as an image. */
+function imgurGifUrl(url) {
+  const m = url.match(/^(https?:\/\/i\.imgur\.com\/[A-Za-z0-9]+\.gif)v([?#].*)?$/i);
+  return m ? m[1] : null;
 }
 
 /* Tenor page links end in the post number, which Tenor's embeddable player
@@ -374,7 +399,7 @@ function updateGifPreview() {
 
   img.onerror = () => { box.style.display = 'none'; };
   img.onload  = () => { box.style.display = 'block'; };
-  img.src = giphyFileUrl(url) || url;
+  img.src = giphyFileUrl(url) || imgurGifUrl(url) || url;
 }
 
 document.getElementById('gif-url').addEventListener('input', () => {
@@ -766,6 +791,19 @@ function buildRelativeTimestamp(minutes) {
   return `<t:${unix}:R>`;
 }
 
+/* The timestamp in a preview, kept current by refreshLiveTimestamps (the
+   copied command always gets a fresh one anyway). */
+function liveTimestampHTML(minutes) {
+  return `<span class="pv-ts" data-min="${escAttr(String(minutes))}">${escHtml(buildRelativeTimestamp(minutes))}</span>`;
+}
+
+function refreshLiveTimestamps() {
+  document.querySelectorAll('.pv-ts').forEach(el => {
+    el.textContent = buildRelativeTimestamp(el.dataset.min);
+  });
+}
+setInterval(refreshLiveTimestamps, 1000);
+
 /* ── Build parts shared by raw + visual ─────────────────────── */
 function buildParts(exp) {
   const world  = getComboVal('combo-world') || 'WORLD';
@@ -818,7 +856,7 @@ function buildVisualHTML(exp) {
   const cmsgLine   = cmsg   ? `\n${escHtml(cmsg)}`   : '';
 
   if (isPreShb(exp)) {
-    const ts = escHtml(buildRelativeTimestamp(startInMin));
+    const ts = liveTimestampHTML(startInMin);
     return `.msh "\n`
       + `On <span class="pv-bold">${escHtml(world)}</span> at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} in ${ts}${cmsgLine}\n`
       + `:book: Expansion: <span class="pv-bold">${escHtml(expLabel)}</span>\n`
@@ -935,7 +973,7 @@ function buildMergedVisualHTML() {
   const progLine   = prog   ? `\n<span class="pv-italic">${escHtml(prog)}</span>` : '';
   const instTag    = instance ? ` <span class="pv-bold">(Instance ${instanceNum})</span>` : '';
   const head = isPreShb(first)
-    ? `.msh "\nOn <span class="pv-bold">${escHtml(world)}</span> at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} in ${escHtml(buildRelativeTimestamp(startInMin))}`
+    ? `.msh "\nOn <span class="pv-bold">${escHtml(world)}</span> at ${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag} in ${liveTimestampHTML(startInMin)}`
     : `.sh ${escHtml(world)} "\n${escHtml(map)} - <span class="pv-bold">${escHtml(aeth)}</span>${instTag}`;
   return head
     + `${cmsgLine}\n`
@@ -1201,30 +1239,29 @@ function update() {
       <div class="preview-exp-label">
         <span class="exp-icon">${EXP_ICONS[exp]}</span> ${EXP_LABELS[exp]}
       </div>
-      <div class="preview-visual" id="pv-${exp}" onclick="copyCmd('${exp}', this)">
-        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildVisualHTML(exp)}
-      </div>
+      ${copyBox(`pv-${exp}`, `copyCmd('${exp}', this)`, buildVisualHTML(exp))}
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">${EXP_ICONS[exp]}</span> CWLS message
       </div>
-      <div class="preview-visual" id="pvc-${exp}" onclick="copyCwl1('${exp}', this)">
-        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildCwl1Visual(exp)}
-      </div>
+      ${copyBox(`pvc-${exp}`, `copyCwl1('${exp}', this)`, buildCwl1Visual(exp))}
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">${EXP_ICONS[exp]}</span> Scouts macro
       </div>
-      <div class="preview-visual" id="pvs-${exp}" onclick="copyScouts('${exp}', this)">
-        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildScoutsVisual(exp)}
-      </div>
+      ${copyBox(`pvs-${exp}`, `copyScouts('${exp}', this)`, buildScoutsVisual(exp))}
       ${hasTrainControl(exp) ? `
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">${EXP_ICONS[exp]}</span> End train
       </div>
-      <div class="preview-visual pv-small" id="pve-${exp}" onclick="copyEnd('${exp}', this)">
-        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildEndCmd(exp))}
-      </div>` : ''}
+      ${copyBox(`pve-${exp}`, `copyEnd('${exp}', this)`, escHtml(buildEndCmd(exp)), { cls: 'pv-small' })}` : ''}
     </div>
   `).join('');
+}
+
+/* A click-to-copy command box. Built without whitespace around the content,
+   since the box keeps line breaks and spaces (white-space: pre-wrap). */
+function copyBox(id, onclick, content, { cls = '', style = '' } = {}) {
+  return `<div class="preview-visual${cls ? ' ' + cls : ''}" id="${id}" role="button" tabindex="0"`
+    + ` onclick="${onclick}"${style ? ` style="${style}"` : ''}><span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${content}</div>`;
 }
 
 /* ── Merged (no-breaks) preview rendering ────────────────────── */
@@ -1236,15 +1273,11 @@ function renderMergedPreview(area) {
     <div class="preview-exp-label" style="margin-top:.6rem">
       <span class="exp-icon">${EXP_ICONS[exp]}</span> ${EXP_LABELS[exp]} — mid-train starting location
     </div>
-    <div class="preview-visual" id="pvm-${exp}" onclick="copyMsh('${exp}', this)">
-      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMshVisual(exp)}
-    </div>
+    ${copyBox(`pvm-${exp}`, `copyMsh('${exp}', this)`, buildMshVisual(exp))}
     <div class="preview-exp-label" style="margin-top:.6rem">
       <span class="exp-icon">${EXP_ICONS[exp]}</span> ${EXP_LABELS[exp]} — mid-train starting announcement
     </div>
-    <div class="preview-visual" id="pvma-${exp}" onclick="copyMshArrive('${exp}', this)">
-      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMshArriveVisual(exp)}
-    </div>
+    ${copyBox(`pvma-${exp}`, `copyMshArrive('${exp}', this)`, buildMshArriveVisual(exp))}
   `).join('');
 
   const controlBlocks = selectedExps
@@ -1253,12 +1286,8 @@ function renderMergedPreview(area) {
       const isFirstOverall = selectedExps[0] === exp;
       return `
     ${!isFirstOverall ? `
-    <div class="preview-visual pv-small" id="pvst-${exp}" onclick="copyStart('${exp}', this)" style="margin-bottom:6px">
-      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildStartCmd(exp))}
-    </div>` : ''}
-    <div class="preview-visual pv-small" id="pve-${exp}" onclick="copyEnd('${exp}', this)" style="margin-bottom:6px">
-      <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${escHtml(buildEndCmd(exp))}
-    </div>`;
+    ${copyBox(`pvst-${exp}`, `copyStart('${exp}', this)`, escHtml(buildStartCmd(exp)), { cls: 'pv-small', style: 'margin-bottom:6px' })}` : ''}
+    ${copyBox(`pve-${exp}`, `copyEnd('${exp}', this)`, escHtml(buildEndCmd(exp)), { cls: 'pv-small', style: 'margin-bottom:6px' })}`;
     }).join('');
 
   area.innerHTML = `
@@ -1267,22 +1296,16 @@ function renderMergedPreview(area) {
       <div class="preview-exp-label">
         <span class="exp-icon">🚄</span> Merged train announcement (${selectedExps.join(' > ')})
       </div>
-      <div class="preview-visual" id="pv-merged" onclick="copyMergedCmd(this)">
-        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMergedVisualHTML()}
-      </div>
+      ${copyBox('pv-merged', 'copyMergedCmd(this)', buildMergedVisualHTML())}
       ${mshBlocks}
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">💬</span> CWLS message
       </div>
-      <div class="preview-visual" id="pvc-merged" onclick="copyMergedCwl1(this)">
-        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMergedCwl1Visual()}
-      </div>
+      ${copyBox('pvc-merged', 'copyMergedCwl1(this)', buildMergedCwl1Visual())}
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">🔭</span> Scouts macro
       </div>
-      <div class="preview-visual" id="pvs-merged" onclick="copyMergedScouts(this)">
-        <span class="copy-hint"><i class="ti ti-copy"></i> Click to copy</span>${buildMergedScoutsVisual()}
-      </div>
+      ${copyBox('pvs-merged', 'copyMergedScouts(this)', buildMergedScoutsVisual())}
       ${controlBlocks ? `
       <div class="preview-exp-label" style="margin-top:.6rem">
         <span class="exp-icon">🏁</span> Train control (.start on reaching an expansion, .end when done)
@@ -1419,7 +1442,7 @@ function syncTrainState() {
 function renderTrainTabs() {
   const bar = document.getElementById('train-tabs');
   bar.innerHTML = trains.map((t, i) => `
-    <div class="train-tab${i === activeTrain ? ' active' : ''}" onclick="switchTrain(${i})" title="${escAttr(trainLabel(t.state))}">
+    <div class="train-tab${i === activeTrain ? ' active' : ''}" role="button" tabindex="0" onclick="switchTrain(${i})" title="${escAttr(trainLabel(t.state))}">
       <span class="train-tab-label">${escHtml(trainLabel(t.state))}</span>
       <span class="train-tab-timer" data-train-id="${t.id}"></span>
       ${trains.length > 1 ? `<button type="button" class="train-tab-close" title="Close this train"

@@ -1,0 +1,11 @@
+{
+  "name": "hunt-train-command-builder-tests",
+  "private": true,
+  "description": "Browser tests for the Hunt Train Command Builder; the site itself needs no install.",
+  "scripts": {
+    "test": "node run.js"
+  },
+  "devDependencies": {
+    "playwright-core": "1.48.2"
+  }
+}
