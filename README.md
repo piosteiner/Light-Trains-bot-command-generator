@@ -177,9 +177,10 @@ Current findings:
 | `media*.tenor.com/…` | Fails — **Use the working link** rewrites it to `c.tenor.com` |
 | `tenor.com/view/…` | Works — the format Discord's own GIF picker posts |
 | `tenor.com/en-GB/view/…` (any language part) | Fails — the tool **removes the language part automatically** (`normalizeGifUrl`) |
-| `tenor.com/<code>.gif` short link | Predicted to work — it redirects to a plain `tenor.com/view` page |
-| `i.imgur.com/<id>.gif` / `.gifv` | Predicted to work |
-| `imgur.com/…` page | Predicted to fail (still preview only) — use the `i.imgur.com` image address |
+| `tenor.com/<code>.gif` short link | Works — it redirects to a plain `tenor.com/view` page |
+| `i.imgur.com/<id>.gif` | Works |
+| `imgur.com/…` page (e.g. `imgur.com/gallery/…`) | Works |
+| `i.imgur.com/<id>.gifv` | Predicted to work (as a looping video) |
 | `cdn.discordapp.com/attachments/…` | Predicted to work, but Discord file links expire after about a day |
 | Any other link ending in `.gif` | Predicted to work, unless the site blocks it (catch-all, keep it last) |
 
@@ -191,7 +192,7 @@ So every GIF link goes through `normalizeGifUrl` first: whatever sits between `t
 
 **For Tenor:** paste the page link (any language version), or right-click the GIF → *Copy image address* and click **Use the working link** to get the `c.tenor.com` link. A saved GIF keeps its name when its link is fixed this way.
 
-Previews need no third-party service: Giphy page links are previewed from their GIF id, Tenor page links with Tenor's own embedded player, and file links directly. Tenor short links get no preview, since Tenor doesn't let other sites follow them.
+Previews need no third-party service: Giphy page links are previewed from their GIF id, Tenor page links with Tenor's own embedded player, and file links directly. Tenor short links and Imgur pages get no preview, since neither site lets other sites read where the GIF file is; the verdict still shows.
 
 A matching ✅ format plus a preview that loads (so the GIF exists) is as close to certain as it gets; Discord can still change its behaviour, so add a rule whenever a result surprises you.
 

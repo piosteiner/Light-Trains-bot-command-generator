@@ -192,23 +192,28 @@ const GIF_LINK_RULES = [
   {
     name: 'Tenor short link',
     pattern: /^https?:\/\/(www\.)?tenor\.com\/[A-Za-z0-9]+\.gif$/i,
-    verdict: 'works', tested: false,
-    note: 'It redirects to a plain Tenor page link, which works.',
+    // Redirects to a plain Tenor page link
+    verdict: 'works', tested: true,
     examples: ['https://tenor.com/reygSVZAanM.gif'],
   },
   {
     name: 'Imgur file',
-    pattern: /^https?:\/\/i\.imgur\.com\/[A-Za-z0-9]+\.gifv?([?#].*)?$/i,
+    pattern: /^https?:\/\/i\.imgur\.com\/[A-Za-z0-9]+\.gif([?#].*)?$/i,
+    verdict: 'works', tested: true,
+    examples: ['https://i.imgur.com/i2EIwi6.gif'],
+  },
+  {
+    name: 'Imgur video',
+    pattern: /^https?:\/\/i\.imgur\.com\/[A-Za-z0-9]+\.gifv([?#].*)?$/i,
     verdict: 'works', tested: false,
-    note: 'Discord shows direct Imgur links (.gif, and .gifv as a looping video).',
-    examples: ['https://i.imgur.com/abc1234.gif', 'https://i.imgur.com/abc1234.gifv'],
+    note: 'Discord plays .gifv links as a looping video.',
+    examples: ['https://i.imgur.com/abc1234.gifv'],
   },
   {
     name: 'Imgur page',
     pattern: /^https?:\/\/(www\.)?imgur\.com\//i,
-    verdict: 'fails', tested: false,
-    note: 'Discord tends to show only a still preview of Imgur pages. Use the GIF\'s own address instead (right-click the GIF, copy image address: i.imgur.com/….gif).',
-    examples: ['https://imgur.com/gallery/abc1234'],
+    verdict: 'works', tested: true,
+    examples: ['https://imgur.com/gallery/funny-waving-alien-gif-qT4zfLv#/t/gifs'],
   },
   {
     // Discord file links carry a signature (ex=, is=, hm=) that expires.

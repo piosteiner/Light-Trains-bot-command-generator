@@ -10,9 +10,9 @@ const CASES = [
   ['fails', 'https://media1.tenor.com/m/vxq76cN5xyMAAAAC/pixelplace.gif', 'ti-alert-triangle'],
   ['works', 'https://c.tenor.com/vxq76cN5xyMAAAAC/tenor.gif', 'ti-check'],
   ['works', 'https://tenor.com/view/dungeon-meshi-delicious-in-dungeon-laios-marcille-chilchuck-gif-14327501401196912076', 'ti-check'],
-  ['probably', 'https://i.imgur.com/abc1234.gif', 'ti-check'],
+  ['works', 'https://i.imgur.com/i2EIwi6.gif', 'ti-check'],
   ['probably', 'https://i.imgur.com/abc1234.gifv', 'ti-check'],
-  ['probably', 'https://imgur.com/gallery/abc1234', 'ti-alert-triangle'],
+  ['works', 'https://imgur.com/gallery/funny-waving-alien-gif-qT4zfLv#/t/gifs', 'ti-check'],
   ['probably', 'https://cdn.discordapp.com/attachments/111/222/train.gif?ex=1&is=2&hm=3', 'ti-check'],
   ['probably', 'https://example.com/some.gif', 'ti-check'],
   ['unknown', 'https://example.com/some-page', 'ti-help-circle'],
@@ -46,7 +46,7 @@ module.exports = async ({ browser, BASE, check }) => {
       const src = await page.getAttribute('#gif-preview iframe', 'src');
       const shown = await page.evaluate(() => document.getElementById('gif-preview').style.display === 'block');
       check(`         player   ${url.slice(0, 60)}`, shown && src.startsWith('https://tenor.com/embed/'), src);
-    } else if (expect === 'works') {
+    } else if (expect === 'works' && !url.includes('imgur.com/gallery/')) {   // Imgur pages get no preview
       const ok = await previewLoaded();
       check(`         preview  ${url.slice(0, 60)}`, ok, 'img src=' + await page.getAttribute('#gif-preview img', 'src'));
     }
@@ -62,7 +62,7 @@ module.exports = async ({ browser, BASE, check }) => {
   // Tenor short link: verdict + no preview, hint tells what to paste
   await setGif('https://tenor.com/reygSVZAanM.gif');
   const shortHint = await page.innerText('#gif-url-hint');
-  check('short link: probably works', shortHint.startsWith('Probably shows') && (await page.getAttribute('#gif-url-hint i', 'class')).includes('ti-check'), shortHint);
+  check('short link: works', shortHint.startsWith('Shows as a GIF') &&(await page.getAttribute('#gif-url-hint i', 'class')).includes('ti-check'), shortHint);
 
   for (const [typed, plain] of [
     ['https://tenor.com/en-GB/view/pixelplace-gif-24586548', 'https://tenor.com/view/pixelplace-gif-24586548'],
