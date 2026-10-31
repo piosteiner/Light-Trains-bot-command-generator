@@ -947,9 +947,59 @@ input::placeholder { color: var(--text-dim); }
 .train-tab-timer.paused        { color: var(--text-muted); }
 .train-tab-timer.overtime      { color: #e8a84a; }
 
+/* Expand/collapse button, only used on phones */
+#timer-toggle { display: none; }
+
+/* Phones: a compact bar along the bottom — one chip per timer (name and
+   time) — so it doesn't cover the form. The toggle expands the full dock. */
 @media (max-width: 600px) {
-  #timer-dock { bottom: 10px; right: 10px; width: 170px; }
+  body { padding-bottom: 64px; }
+  #timer-dock { bottom: 8px; right: 8px; left: 8px; width: auto; }
   .timer-display { font-size: 24px; }
+
+  #timer-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    color: var(--accent);
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  #timer-dock:not(.expanded) {
+    flex-direction: row-reverse;
+    align-items: stretch;
+    overflow: visible;
+  }
+  #timer-dock:not(.expanded) #timer-panel { display: none !important; }
+  #timer-dock:not(.expanded) #timer-list {
+    flex-direction: row;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  #timer-dock:not(.expanded) .timer-card {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+    padding: 0.35rem 0.6rem;
+    max-width: 70vw;
+  }
+  #timer-dock:not(.expanded) .timer-head { min-width: 0; }
+  #timer-dock:not(.expanded) .timer-icon,
+  #timer-dock:not(.expanded) .timer-head > i { display: none; }
+  #timer-dock:not(.expanded) .timer-display { font-size: 16px; }
+
+  #timer-dock.expanded { max-height: calc(100vh - 16px); }
 }
 /* Footer with the privacy link */
 .site-foot { text-align: center; padding: 24px 16px 40px; font-size: 12px; }

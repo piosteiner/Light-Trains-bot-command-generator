@@ -1071,8 +1071,7 @@ function copyCmd(exp, el) {
     return;
   }
   const raw = buildRawCmd(exp);
-  copyToClipboard(raw, el);
-  startCurrentTrainTimer(exp);
+  copyToClipboard(raw, el).then(ok => { if (ok) startCurrentTrainTimer(exp); });
 }
 
 /* Copying a main command starts this train's countdown: the scheduled
@@ -1108,8 +1107,7 @@ function validateAllExps() {
 
 function copyMergedCmd(el) {
   if (!validateAllExps()) { flashInvalid(el); return; }
-  copyToClipboard(buildMergedRawCmd(), el);
-  startCurrentTrainTimer(selectedExps[0]);
+  copyToClipboard(buildMergedRawCmd(), el).then(ok => { if (ok) startCurrentTrainTimer(selectedExps[0]); });
 }
 
 function copyMsh(exp, el) {
@@ -1134,23 +1132,48 @@ function copyMergedScouts(el) {
 function copyEnd(exp, el)   { copyToClipboard(buildEndCmd(exp), el); }
 function copyStart(exp, el) { copyToClipboard(buildStartCmd(exp), el); }
 
+/* Briefly mark a command box (state class + hint text), then restore it. */
+function flashHint(el, cls, html, ms = 1800) {
+  const hint = el.querySelector('.copy-hint');
+  clearTimeout(el._flashTimer);
+  el.classList.remove('copied', 'blocked');
+  el.classList.add(cls);
+  hint.innerHTML = html;
+  el._flashTimer = setTimeout(() => {
+    el.classList.remove(cls);
+    hint.innerHTML = '<i class="ti ti-copy"></i> Click to copy';
+  }, ms);
+}
+
 function flashInvalid(el) {
-  el.classList.add('blocked');
-  el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-alert-triangle"></i> Fill required fields';
-  setTimeout(() => {
-    el.classList.remove('blocked');
-    el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-copy"></i> Click to copy';
-  }, 1800);
+  flashHint(el, 'blocked', '<i class="ti ti-alert-triangle"></i> Fill required fields');
+}
+
+/* Copy text; resolves true only if it really reached the clipboard.
+   Falls back to execCommand where the Clipboard API is missing or
+   blocked (e.g. the page opened as a local file). */
+function writeClipboard(text) {
+  const legacy = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch {}
+    ta.remove();
+    return ok;
+  };
+  if (!navigator.clipboard?.writeText) return Promise.resolve(legacy());
+  return navigator.clipboard.writeText(text).then(() => true, () => legacy());
 }
 
 function copyToClipboard(text, el) {
-  navigator.clipboard.writeText(text).then(() => {
-    el.classList.add('copied');
-    el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-check"></i> Copied!';
-    setTimeout(() => {
-      el.classList.remove('copied');
-      el.querySelector('.copy-hint').innerHTML = '<i class="ti ti-copy"></i> Click to copy';
-    }, 1800);
+  return writeClipboard(text).then(ok => {
+    if (ok) flashHint(el, 'copied', '<i class="ti ti-check"></i> Copied!');
+    else    flashHint(el, 'blocked', '<i class="ti ti-alert-triangle"></i> Copy failed: your browser blocked the clipboard', 4000);
+    return ok;
   });
 }
 
@@ -1496,7 +1519,7 @@ function flashButton(btn, text) {
 
 document.getElementById('train-copy-link').addEventListener('click', (e) => {
   const btn = e.currentTarget;
-  navigator.clipboard.writeText(location.href).then(() => flashButton(btn, 'Copied!'));
+  writeClipboard(location.href).then(ok => flashButton(btn, ok ? 'Copied!' : 'Copy failed'));
 });
 
 document.getElementById('train-duplicate').addEventListener('click', () => {

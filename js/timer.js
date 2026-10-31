@@ -17,14 +17,16 @@
 
    Sounds fire at: start, 10:00, 2:10, 1:10, 0:15, and 0:00 remaining. While
    several timers exist, each cue starts with its train's name. After 0:00 a
-   timer keeps running and counts UP (overtime) until dismissed. Running
-   timers are saved, so they survive a reload. */
+   timer keeps running and counts UP (overtime) until dismissed, or until
+   it is 2 hours over (a forgotten timer). Running timers are saved, so
+   they survive a reload. */
 
 (function () {
   const SOUND_KEY  = 'hunt-train-timer-sound';
   const VOICE_KEY  = 'hunt-train-timer-voice';
   const DUR_KEY    = 'hunt-train-timer-duration';
   const TIMERS_KEY = 'hunt-train-timers-v1';
+  const STALE_SECS = 2 * 60 * 60;   // overtime after which a timer is dropped
 
   window.TIMER_DEFAULT_DURATION = 630; // 10:30 — single source of truth for app.js too
 
@@ -178,6 +180,10 @@
     return new Set(THRESHOLDS.filter(th => th.t >= t.duration || th.t > r).map(th => th.t));
   }
 
+  function isStale(t) {
+    return remaining(t) < -STALE_SECS;
+  }
+
   function stateOf(t) {
     if (remaining(t) < 0) return 'overtime';
     return t.running ? 'running' : 'paused';
@@ -205,7 +211,7 @@
           runStartTs: s.running ? s.runStartTs : null, running: !!s.running && s.runStartTs > 0,
         };
         t.fired = initialFired(t);
-        timers.set(t.id, t);
+        if (!isStale(t)) timers.set(t.id, t);
       });
     } catch {}
   }
@@ -253,6 +259,11 @@
   }
 
   function tick() {
+    const stale = [...timers.values()].filter(isStale);
+    if (stale.length) {
+      stale.forEach(t => timers.delete(t.id));
+      changed();
+    }
     timers.forEach(t => {
       if (!t.running) return;
       const r = remaining(t);
@@ -398,6 +409,13 @@
     };
     document.getElementById('timer-apply')?.addEventListener('click', startCurrent);
     setInput?.addEventListener('keydown', e => { if (e.key === 'Enter') startCurrent(); });
+
+    // Phones: the dock is a compact bar until expanded (see style.css)
+    document.getElementById('timer-toggle')?.addEventListener('click', e => {
+      const open = document.getElementById('timer-dock').classList.toggle('expanded');
+      e.currentTarget.title = open ? 'Collapse timers' : 'Show timer controls';
+      e.currentTarget.querySelector('i').className = open ? 'ti ti-chevron-down' : 'ti ti-chevron-up';
+    });
 
     document.getElementById('timer-close')?.addEventListener('click', () => {
       document.getElementById('timer-panel').style.display = 'none';

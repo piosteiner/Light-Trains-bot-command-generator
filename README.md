@@ -197,18 +197,18 @@ Clicking a copy box that's missing required data (World, Map, Aetheryte, Targets
 
 ## Countdown timers
 
-Every train tab has its own countdown, so several trains can be timed at once. Timers sit in a dock pinned to the bottom-right of the screen (always visible):
+Every train tab has its own countdown, so several trains can be timed at once. Timers sit in a dock pinned to the bottom-right of the screen (always visible). On phones the dock is a compact bar of chips (train and time) along the bottom; the ^ button expands it to the full cards and settings.
 
 - **A card per running timer**, named after its train, with pause/resume, reset (back to full time, stopped) and dismiss (✕). Clicking the card's name switches to that train's tab; the card of the train on screen is highlighted.
 - **Tab badges**: a tab whose train has a timer shows its remaining time (dimmed while paused, orange in overtime).
-- **Auto-starts** when you copy a main command (normal or merged) — the timer of the train you're on.
+- **Auto-starts** when you copy a main command (normal or merged) — the timer of the train you're on. If the browser blocks the clipboard, the box turns red with "Copy failed" and no timer starts.
   - Defaults to **10:30** for ShB/EW/DT.
   - For ARR/HW/SB, starts at whatever you set in "Starts in (minutes)" (default 5:00), keeping the timer in sync with the Discord `<t:...:R>` tag you just copied.
   - Copying again restarts that train's timer; other trains' timers keep running.
 - **Settings panel** below the cards, titled with the current train: a duration field (accepts `mm:ss`, a raw second count, or a plain number of minutes) with ▶ to start or restart the current train's timer, plus the sound settings. Its ✕ hides it until the next timer starts.
 - **Sound cues** fire as each timer counts down: at start, and at 10:00, 2:10, 1:10, 0:15, and 0:00 remaining (any threshold above the starting duration is skipped, so a 5-minute timer won't announce "10 minutes"). While more than one timer exists, each cue starts with the train's world — "Phoenix: 2 minutes 10" — and cues from two trains at once are queued, not cut off.
 - **Sound mode** — Voice (browser text-to-speech), Beeps (generated tones, no audio files needed), or Muted — remembered in `localStorage`. A "test sound" button previews the current mode.
-- After **0:00** a timer plays "Train starts now" and keeps counting **up** (`+00:42`, orange) until you dismiss it.
+- After **0:00** a timer plays "Train starts now" and keeps counting **up** (`+00:42`, orange) until you dismiss it. A timer more than 2 hours over is dismissed automatically.
 - **Timers survive a reload**: they're saved with their start time and keep counting; cues that were due while the page was closed aren't replayed. Closing a train's tab removes its timer.
 
 ---
