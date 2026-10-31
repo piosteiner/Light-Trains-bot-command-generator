@@ -76,7 +76,7 @@ The **Trains** card holds one tab per prepared train, labelled `World · ShB > D
 - Switching tabs swaps the whole form and the address-bar link.
 - All tabs are kept in `localStorage`, so they survive a reload.
 - Opening a train link reuses a tab already holding exactly that train, fills the current tab if it's blank, and otherwise opens a new tab.
-- There's still one countdown timer; its header shows which train it was started for.
+- Each train has its own countdown (see [Countdown timers](#countdown-timers)); a tab with a running timer shows its remaining time.
 
 ---
 
@@ -195,18 +195,21 @@ Clicking a copy box that's missing required data (World, Map, Aetheryte, Targets
 
 ---
 
-## Countdown timer
+## Countdown timers
 
-A sticky panel pinned to the bottom-right of the screen (scrolls with you, always visible):
+Every train tab has its own countdown, so several trains can be timed at once. Timers sit in a dock pinned to the bottom-right of the screen (always visible):
 
-- **Auto-starts** when you click to copy any main command (normal or merged).
+- **A card per running timer**, named after its train, with pause/resume, reset (back to full time, stopped) and dismiss (✕). Clicking the card's name switches to that train's tab; the card of the train on screen is highlighted.
+- **Tab badges**: a tab whose train has a timer shows its remaining time (dimmed while paused, orange in overtime).
+- **Auto-starts** when you copy a main command (normal or merged) — the timer of the train you're on.
   - Defaults to **10:30** for ShB/EW/DT.
   - For ARR/HW/SB, starts at whatever you set in "Starts in (minutes)" (default 5:00), keeping the timer in sync with the Discord `<t:...:R>` tag you just copied.
-- **Only one timer runs at a time** — copying another command restarts it from that command's duration.
-- **Sound cues** fire automatically as the timer counts down: at start, and at 10:00, 2:10, 1:10, 0:15, and 0:00 remaining (any threshold above the starting duration is skipped, so a 5-minute timer won't try to announce "10 minutes remaining").
-- **Sound mode** — Voice (browser text-to-speech), Beeps (generated tones, no audio files needed), or Muted — selectable from a dropdown and remembered in `localStorage` (`hunt-train-timer-sound`). A "test sound" button lets you preview the current mode without starting a real countdown.
-- At **0:00** it plays a final cue ("Train starts now") and stays pinned at `00:00` with a green highlight until you dismiss it — it does not disappear on its own.
-- **Manual controls**: a text field (accepts `mm:ss`, a raw second count, or a plain number of minutes) plus Set/Restart, Reset (restarts at the last-used duration), and a close (✕) button to cancel outright.
+  - Copying again restarts that train's timer; other trains' timers keep running.
+- **Settings panel** below the cards, titled with the current train: a duration field (accepts `mm:ss`, a raw second count, or a plain number of minutes) with ▶ to start or restart the current train's timer, plus the sound settings. Its ✕ hides it until the next timer starts.
+- **Sound cues** fire as each timer counts down: at start, and at 10:00, 2:10, 1:10, 0:15, and 0:00 remaining (any threshold above the starting duration is skipped, so a 5-minute timer won't announce "10 minutes"). While more than one timer exists, each cue starts with the train's world — "Phoenix: 2 minutes 10" — and cues from two trains at once are queued, not cut off.
+- **Sound mode** — Voice (browser text-to-speech), Beeps (generated tones, no audio files needed), or Muted — remembered in `localStorage`. A "test sound" button previews the current mode.
+- After **0:00** a timer plays "Train starts now" and keeps counting **up** (`+00:42`, orange) until you dismiss it.
+- **Timers survive a reload**: they're saved with their start time and keep counting; cues that were due while the page was closed aren't replayed. Closing a train's tab removes its timer.
 
 ---
 
@@ -216,9 +219,10 @@ A sticky panel pinned to the bottom-right of the screen (scrolls with you, alway
 |---|---|
 | `hunt-train-gif-library-v2` | Saved GIF pills (`[{url, label}]`) |
 | `hunt-train-timer-sound` | Sound mode: `voice` / `beep` / `mute` |
-| `hunt-train-timer-duration` | Last-used timer duration in seconds, used by Reset |
+| `hunt-train-timer-duration` | Last-used timer duration in seconds, pre-filled in the settings panel |
+| `hunt-train-timers-v1` | Running train timers: train id, name, duration, elapsed time and start time, so they survive a reload |
 | `hunt-train-timer-voice` | Chosen text-to-speech voice |
-| `hunt-train-trains-v1` | Prepared trains: `{ trains: [encoded, …], active }`, each entry in the link format above |
+| `hunt-train-trains-v1` | Prepared trains: `{ trains: [{ id, state }, …], active }`, each `state` in the link format above |
 
 The form itself is restored from the active train (and the `#` link). Use **Clear** for a fresh form.
 

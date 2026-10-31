@@ -765,17 +765,35 @@ input::placeholder { color: var(--text-dim); }
   min-height: unset;
 }
 
-/* ── Countdown timer panel ────────────────────────────────── */
-#timer-panel {
+/* ── Countdown timers ─────────────────────────────────────── */
+/* Bottom-right dock: one card per train timer, above the panel that starts
+   the current train's timer and holds the sound settings. */
+#timer-dock {
   position: fixed;
   bottom: 16px;
   right: 16px;
   z-index: 500;
-  width: 190px;
+  width: 200px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#timer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#timer-list:empty { display: none; }
+
+#timer-panel,
+.timer-card {
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 12px;
-  padding: 0.8rem 0.9rem;
+  padding: 0.7rem 0.8rem;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
@@ -783,22 +801,24 @@ input::placeholder { color: var(--text-dim); }
   transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
 }
 
+.timer-card { gap: 4px; }
+
+/* The train on screen */
+.timer-card.current { border-color: var(--accent-border); }
+
 /* Counting up past zero — train is running late / overtime */
-#timer-panel.overtime {
+.timer-card.overtime {
   border-color: #e8a84a;
   box-shadow: 0 8px 28px rgba(232, 168, 74, 0.2);
 }
 
-/* Paused — session exists but not currently counting */
-#timer-panel.paused {
-  border-color: var(--border-strong);
-  opacity: 0.8;
-}
+/* Paused — stopped but not dismissed */
+.timer-card.paused:not(.overtime) { opacity: 0.8; }
 
 .timer-head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
@@ -806,17 +826,32 @@ input::placeholder { color: var(--text-dim); }
   letter-spacing: 0.05em;
 }
 
-.timer-head i { color: var(--accent); font-size: 14px; }
+.timer-head > i { color: var(--accent); font-size: 14px; }
 
-#timer-title {
+#timer-title,
+.timer-name {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-#timer-close {
-  margin-left: auto;
+.timer-name {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.timer-name:hover { color: var(--text); }
+
+#timer-close,
+.timer-icon {
   background: none;
   border: none;
   color: var(--text-dim);
@@ -827,11 +862,14 @@ input::placeholder { color: var(--text-dim); }
   border-radius: 4px;
 }
 
-#timer-close:hover { color: #e25c5c; }
+#timer-close { margin-left: auto; }
+.timer-icon:hover { color: var(--accent); }
+#timer-close:hover,
+.timer-dismiss:hover { color: #e25c5c; }
 
-#timer-display {
+.timer-display {
   font-family: var(--mono);
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 500;
   text-align: center;
   color: var(--text);
@@ -840,8 +878,8 @@ input::placeholder { color: var(--text-dim); }
   transition: color 0.2s;
 }
 
-#timer-panel.overtime #timer-display { color: #e8a84a; }
-#timer-panel.paused #timer-display   { color: var(--text-muted); }
+.timer-card.overtime .timer-display          { color: #e8a84a; }
+.timer-card.paused:not(.overtime) .timer-display { color: var(--text-muted); }
 
 .timer-controls {
   display: flex;
@@ -859,6 +897,7 @@ input::placeholder { color: var(--text-dim); }
 
 .timer-controls select {
   flex: 1;
+  min-width: 0;
   background: var(--surface2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -889,14 +928,28 @@ input::placeholder { color: var(--text-dim); }
   border-color: var(--accent-border);
 }
 
-#timer-pause {
+#timer-apply {
   color: var(--accent);
   border-color: var(--accent-border);
 }
 
+/* Remaining time on a train tab whose timer exists */
+.train-tab-timer {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  margin-right: 4px;
+  border-radius: 6px;
+  background: var(--surface3);
+  color: var(--text);
+}
+.train-tab-timer:empty         { display: none; }
+.train-tab-timer.paused        { color: var(--text-muted); }
+.train-tab-timer.overtime      { color: #e8a84a; }
+
 @media (max-width: 600px) {
-  #timer-panel { bottom: 10px; right: 10px; width: 170px; }
-  #timer-display { font-size: 28px; }
+  #timer-dock { bottom: 10px; right: 10px; width: 170px; }
+  .timer-display { font-size: 24px; }
 }
 /* Footer with the privacy link */
 .site-foot { text-align: center; padding: 24px 16px 40px; font-size: 12px; }

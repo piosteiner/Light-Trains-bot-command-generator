@@ -1072,15 +1072,17 @@ function copyCmd(exp, el) {
   }
   const raw = buildRawCmd(exp);
   copyToClipboard(raw, el);
-  if (typeof startTrainTimer === 'function') {
-    const label = `${getComboVal('combo-world')} · ${exp}`;
-    if (isPreShb(exp)) {
-      const mins = parseInt(expData[exp]?.startInMin, 10) || 5;
-      startTrainTimer(mins * 60, label);
-    } else {
-      startTrainTimer(window.TIMER_DEFAULT_DURATION, label);
-    }
-  }
+  startCurrentTrainTimer(exp);
+}
+
+/* Copying a main command starts this train's countdown: the scheduled
+   start time for ARR/HW/SB, else the default 10:30. */
+function startCurrentTrainTimer(exp) {
+  const secs = isPreShb(exp)
+    ? (parseInt(expData[exp]?.startInMin, 10) || 5) * 60
+    : window.TIMER_DEFAULT_DURATION;
+  const train = trains[activeTrain];
+  TrainTimers.start(train.id, secs, trainLabel(train.state), trainSpokenName(train.state));
 }
 
 function copyCwl1(exp, el) {
@@ -1107,16 +1109,7 @@ function validateAllExps() {
 function copyMergedCmd(el) {
   if (!validateAllExps()) { flashInvalid(el); return; }
   copyToClipboard(buildMergedRawCmd(), el);
-  if (typeof startTrainTimer === 'function') {
-    const first = selectedExps[0];
-    const label = trainLabel(trains[activeTrain]);
-    if (isPreShb(first)) {
-      const mins = parseInt(expData[first]?.startInMin, 10) || 5;
-      startTrainTimer(mins * 60, label);
-    } else {
-      startTrainTimer(window.TIMER_DEFAULT_DURATION, label);
-    }
-  }
+  startCurrentTrainTimer(selectedExps[0]);
 }
 
 function copyMsh(exp, el) {
@@ -1281,10 +1274,15 @@ function renderMergedPreview(area) {
    w=Phoenix&e=ShB.DT&ShB.m=Lakeland&ShB.a=Fort+Jobb&ShB.t=8
    Default values are left out, so a blank train encodes to ''.
    The page's #hash always mirrors the active tab; all tabs are kept
-   in localStorage so prepared trains survive a reload. */
+   in localStorage so prepared trains survive a reload. Each tab has a
+   stable id, which its countdown (js/timer.js) is keyed by. */
 const TRAINS_STORAGE_KEY = 'hunt-train-trains-v1';
-let trains      = [''];   // encoded state, one entry per tab
+let trains      = [newTrain()];   // one { id, state } per tab; state = encoded train
 let activeTrain = 0;
+
+function newTrain(state = '') {
+  return { id: `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, state };
+}
 
 function serializeTrain() {
   const p = new URLSearchParams();
@@ -1376,23 +1374,31 @@ function trainLabel(encoded) {
   return exps.length ? `${world} · ${exps.join(' > ')}` : world;
 }
 
+/* How spoken timer cues name a train: its world. */
+function trainSpokenName(encoded) {
+  return new URLSearchParams(encoded).get('w') || 'New train';
+}
+
 /* Called from update(): record the active train, mirror it into the
    address bar (replaceState, so typing doesn't flood Back), and persist. */
 function syncTrainState() {
+  const train   = trains[activeTrain];
   const encoded = serializeTrain();
-  trains[activeTrain] = encoded;
+  train.state = encoded;
   history.replaceState(null, '', encoded ? `#${encoded}` : location.pathname + location.search);
   try {
     localStorage.setItem(TRAINS_STORAGE_KEY, JSON.stringify({ trains, active: activeTrain }));
   } catch {}
   renderTrainTabs();
+  TrainTimers.setCurrent(train.id, trainLabel(encoded), trainSpokenName(encoded));
 }
 
 function renderTrainTabs() {
   const bar = document.getElementById('train-tabs');
   bar.innerHTML = trains.map((t, i) => `
-    <div class="train-tab${i === activeTrain ? ' active' : ''}" onclick="switchTrain(${i})" title="${escAttr(trainLabel(t))}">
-      <span class="train-tab-label">${escHtml(trainLabel(t))}</span>
+    <div class="train-tab${i === activeTrain ? ' active' : ''}" onclick="switchTrain(${i})" title="${escAttr(trainLabel(t.state))}">
+      <span class="train-tab-label">${escHtml(trainLabel(t.state))}</span>
+      <span class="train-tab-timer" data-train-id="${t.id}"></span>
       ${trains.length > 1 ? `<button type="button" class="train-tab-close" title="Close this train"
               onclick="event.stopPropagation(); closeTrain(${i})"><i class="ti ti-x"></i></button>` : ''}
     </div>
@@ -1400,27 +1406,47 @@ function renderTrainTabs() {
     <button type="button" class="train-tab-add" title="Prepare another train" onclick="addTrain()">
       <i class="ti ti-plus"></i>
     </button>`;
+  updateTabTimers();
 }
+
+/* Remaining time on each tab with a timer, refreshed on every timer tick. */
+function updateTabTimers() {
+  document.querySelectorAll('.train-tab-timer').forEach(el => {
+    const st = TrainTimers.status(el.dataset.trainId);
+    el.textContent = st ? st.text : '';
+    el.className = `train-tab-timer${st ? ' ' + st.state : ''}`;
+  });
+}
+document.addEventListener('traintimers:tick', updateTabTimers);
+
+/* A timer card's name was clicked: show that train. */
+document.addEventListener('traintimers:open', e => {
+  const idx = trains.findIndex(t => t.id === e.detail);
+  if (idx >= 0) switchTrain(idx);
+});
 
 function switchTrain(idx) {
   if (idx === activeTrain) return;
   activeTrain = idx;
-  applyTrain(trains[idx]);
+  applyTrain(trains[idx].state);
 }
 
 function addTrain(encoded = '') {
-  trains.push(encoded);
+  trains.push(newTrain(encoded));
   activeTrain = trains.length - 1;
   applyTrain(encoded);
 }
 
 function closeTrain(idx) {
-  if (trains[idx] && !confirm(`Close "${trainLabel(trains[idx])}"? Its entries will be lost.`)) return;
+  const closing = trains[idx];
+  const timer   = TrainTimers.status(closing.id);
+  if ((closing.state || timer) && !confirm(`Close "${trainLabel(closing.state)}"? Its entries${timer ? ' and its timer' : ''} will be lost.`)) return;
+  TrainTimers.remove(closing.id);
   trains.splice(idx, 1);
   const wasActive = idx === activeTrain;
   if (idx < activeTrain) activeTrain--;
   activeTrain = Math.min(activeTrain, trains.length - 1);
-  if (wasActive) applyTrain(trains[activeTrain]);
+  if (wasActive) applyTrain(trains[activeTrain].state);
   else syncTrainState();
 }
 
@@ -1428,32 +1454,36 @@ function closeTrain(idx) {
    else fill the current tab if it's blank, else open a new tab. */
 function openTrainLink(hash) {
   const encoded = new URLSearchParams(hash).toString();
-  const existing = trains.indexOf(encoded);
+  const existing = trains.findIndex(t => t.state === encoded);
   if (existing >= 0) {
     activeTrain = existing;
-  } else if (!trains[activeTrain]) {
-    trains[activeTrain] = encoded;
+  } else if (!trains[activeTrain].state) {
+    trains[activeTrain].state = encoded;
   } else {
-    trains.push(encoded);
+    trains.push(newTrain(encoded));
     activeTrain = trains.length - 1;
   }
-  applyTrain(trains[activeTrain]);
+  applyTrain(trains[activeTrain].state);
 }
 
+/* Saved tabs; older saves stored bare encoded strings, which get ids here. */
 function loadSavedTrains() {
   try {
     const saved = JSON.parse(localStorage.getItem(TRAINS_STORAGE_KEY));
     if (Array.isArray(saved?.trains) && saved.trains.length) {
-      trains      = saved.trains.map(t => String(t));
+      trains = saved.trains.map(t => typeof t === 'string'
+        ? newTrain(t)
+        : { id: String(t.id || newTrain().id), state: String(t.state || '') });
       activeTrain = Math.min(Math.max(0, parseInt(saved.active, 10) || 0), trains.length - 1);
     }
   } catch {}
+  TrainTimers.prune(trains.map(t => t.id));
 }
 
 /* Pasting a different train link into the address bar of an open page. */
 window.addEventListener('hashchange', () => {
   const hash = location.hash.slice(1);
-  if (hash !== trains[activeTrain]) openTrainLink(hash);
+  if (hash !== trains[activeTrain].state) openTrainLink(hash);
 });
 
 function flashButton(btn, text) {
@@ -1470,15 +1500,15 @@ document.getElementById('train-copy-link').addEventListener('click', (e) => {
 });
 
 document.getElementById('train-duplicate').addEventListener('click', () => {
-  addTrain(trains[activeTrain]);
+  addTrain(trains[activeTrain].state);
 });
 
 document.getElementById('train-clear').addEventListener('click', () => {
-  if (trains[activeTrain] && !confirm('Clear every entry of this train?')) return;
+  if (trains[activeTrain].state && !confirm('Clear every entry of this train?')) return;
   applyTrain('');
 });
 
 /* ── Init ───────────────────────────────────────────────────── */
 loadSavedTrains();
 if (location.hash.length > 1) openTrainLink(location.hash.slice(1));
-else applyTrain(trains[activeTrain]);
+else applyTrain(trains[activeTrain].state);

@@ -88,20 +88,19 @@
 
 </main>
 
-<div id="timer-panel" style="display:none">
+<!-- Train countdowns: one card per train with a timer (js/timer.js), above
+     the panel that starts the current train's timer and holds sound settings. -->
+<div id="timer-dock">
+<div id="timer-list"></div>
+<div id="timer-panel">
   <div class="timer-head">
-    <i class="ti ti-alarm"></i>
-    <span id="timer-title">Train countdown</span>
-    <button id="timer-close" title="Dismiss"><i class="ti ti-x"></i></button>
-  </div>
-  <div id="timer-display">10:30</div>
-  <div class="timer-controls">
-    <input type="text" id="timer-set" value="10:30" title="Set time (mm:ss)" />
-    <button id="timer-apply" title="Set &amp; start"><i class="ti ti-player-play"></i></button>
+    <i class="ti ti-alarm-plus"></i>
+    <span id="timer-title">This train</span>
+    <button type="button" id="timer-close" title="Hide (comes back when a timer starts)"><i class="ti ti-x"></i></button>
   </div>
   <div class="timer-controls">
-    <button id="timer-pause" title="Pause / Resume"><i class="ti ti-player-pause" id="timer-pause-icon"></i></button>
-    <button id="timer-reset" title="Reset to full time (does not start)"><i class="ti ti-refresh"></i></button>
+    <input type="text" id="timer-set" value="10:30" title="Countdown for this train (mm:ss)" />
+    <button type="button" id="timer-apply" title="Start or restart this train's timer"><i class="ti ti-player-play"></i></button>
   </div>
   <div class="timer-controls">
     <select id="timer-sound" title="Sound mode">
@@ -114,6 +113,7 @@
   <div class="timer-controls" id="timer-voice-row">
     <select id="timer-voice" title="Voice"></select>
   </div>
+</div>
 </div>
 
 <footer class="site-foot">
