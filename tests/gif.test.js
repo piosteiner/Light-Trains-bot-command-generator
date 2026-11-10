@@ -27,14 +27,18 @@ module.exports = async ({ browser, BASE, check }) => {
   async function setGif(url) {
     await page.fill('#gif-url', url);
   }
+  // polled with page.evaluate: waitForFunction runs its check in a way the page's CSP (no 'unsafe-eval') refuses
   async function previewLoaded(timeout = 9000) {
-    try {
-      await page.waitForFunction(() => {
+    const until = Date.now() + timeout;
+    while (Date.now() < until) {
+      const ok = await page.evaluate(() => {
         const img = document.querySelector('#gif-preview img');
         return document.getElementById('gif-preview').style.display === 'block' && img.complete && img.naturalWidth > 0;
-      }, null, { timeout });
-      return true;
-    } catch { return false; }
+      });
+      if (ok) return true;
+      await page.waitForTimeout(150);
+    }
+    return false;
   }
 
   for (const [expect, url, icon] of CASES) {
